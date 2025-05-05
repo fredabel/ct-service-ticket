@@ -20,8 +20,8 @@ A Flask-based web application for managing service tickets, customers, and mecha
 
 1. Clone the repository:
    ```bash
-   git clone <repository-url>
-   cd service_ticket
+   git clone https://github.com/fredabel/ct-service-ticket.git
+   cd ct-service-ticket
 2. **Set Up a Virtual Environment**:
    ```bash
    python -m venv venv
