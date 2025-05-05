@@ -5,8 +5,7 @@ from marshmallow import ValidationError
 from app.models import Customer, db
 from sqlalchemy import select, delete
 
-
-# Create a new customer
+#Create a new customer
 @customers_bp.route("/",methods=['POST'])
 def create_customer():
     try:
@@ -25,7 +24,7 @@ def create_customer():
     db.session.commit()
     return jsonify({"message":"Successfully created customer","customer": customer_schema.dump(new_customer)}), 201
 
-# Get all customers
+#Get all customers
 @customers_bp.route("/",methods=['GET'])
 def get_customers():
     query = select(Customer)
@@ -34,7 +33,7 @@ def get_customers():
         return jsonify({"message":"Invalid customer"}), 404
     return customers_schema.jsonify(customers), 201
 
-# Get a customer
+#Get a customer
 @customers_bp.route("/<int:customer_id>",methods=['GET'])
 def get_customer(customer_id):
     
@@ -46,6 +45,7 @@ def get_customer(customer_id):
     
     return customer_schema.jsonify(customer), 201
 
+#Update a customer
 @customers_bp.route("/<int:customer_id>", methods=['PUT'])
 def update_customer(customer_id):
     
@@ -71,6 +71,7 @@ def update_customer(customer_id):
     db.session.commit()
     return jsonify({"message":"Successfully updated customer","customer": customer_schema.dump(customer)}), 200
 
+#Delete a customer
 @customers_bp.route("/<int:customer_id>", methods=['DELETE'])
 def delete_customer(customer_id):
     

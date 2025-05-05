@@ -6,7 +6,7 @@ from app.models import Mechanic, db
 from sqlalchemy import select, delete
 
 
-# Create a new mechanic
+#Create a new mechanic
 @mechanics_bp.route("/",methods=['POST'])
 def create_mechanic():
     try:
@@ -27,7 +27,7 @@ def create_mechanic():
     db.session.commit()
     return jsonify({"message":"Successfully created mechanic","mechanic": mechanic_schema.dump(new_mechanic)}), 201
 
-# Get all mechanics
+#Get all mechanics
 @mechanics_bp.route("/",methods=['GET'])
 def get_mechanics():
     query = select(Mechanic)
@@ -36,7 +36,7 @@ def get_mechanics():
         return jsonify({"message":"Invalid mechanic"}), 404
     return mechanics_schema.jsonify(mechanics), 201
 
-# Get a mechanic
+#Get a mechanic
 @mechanics_bp.route("/<int:mechanic_id>",methods=['GET'])
 def get_mechanic(mechanic_id):
     
@@ -48,6 +48,7 @@ def get_mechanic(mechanic_id):
     
     return mechanic_schema.jsonify(mechanic), 201
 
+#Update a mechanic
 @mechanics_bp.route("/<int:mechanic_id>", methods=['PUT'])
 def update_mechanic(mechanic_id):
     
@@ -72,6 +73,7 @@ def update_mechanic(mechanic_id):
     db.session.commit()
     return jsonify({"message":"Successfully updated mechanic","mechanic": mechanic_schema.dump(mechanic)}), 200
 
+#Delete a mechanic
 @mechanics_bp.route("/<int:mechanic_id>", methods=['DELETE'])
 def delete_mechanic(mechanic_id):
     
