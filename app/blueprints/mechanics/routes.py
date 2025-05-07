@@ -4,10 +4,13 @@ from app.blueprints.mechanics.schemas import mechanic_schema, mechanics_schema
 from marshmallow import ValidationError
 from app.models import Mechanic, db
 from sqlalchemy import select, delete
-
+from app.extensions import cache
+from app.extensions import limiter
 
 #Create a new mechanic
 @mechanics_bp.route("/",methods=['POST'])
+#To prevent spamming of new mechanic creation.
+@limiter.limit("20 per minute")
 def create_mechanic():
     try:
         mechanic_data = mechanic_schema.load(request.json)
@@ -29,6 +32,13 @@ def create_mechanic():
 
 #Get all mechanics
 @mechanics_bp.route("/",methods=['GET'])
+
+# Cache the list of mechanics since it doesn’t change often.
+@cache.cached(timeout=60) # Cache the response for 60 seconds
+
+# This route could be called frequently, so rate limiting can prevent excessive requests.
+@limiter.limit("10 per minute")  # Limit to 10 requests per minute
+
 def get_mechanics():
     query = select(Mechanic)
     mechanics = db.session.execute(query).scalars().all()
@@ -38,6 +48,13 @@ def get_mechanics():
 
 #Get a mechanic
 @mechanics_bp.route("/<int:mechanic_id>",methods=['GET'])
+
+#This route could also be abused if someone tries to brute force mechanic IDs.
+@limiter.limit("15 per minute")  # Limit to 15 requests per minute
+
+#Cache individual mechanic details to reduce database lookups.
+@cache.cached(timeout=30) # Cache the response for 30 seconds
+
 def get_mechanic(mechanic_id):
     
     query = select(Mechanic).where(Mechanic.id == mechanic_id)
@@ -85,4 +102,4 @@ def delete_mechanic(mechanic_id):
 
     db.session.delete(mechanic)
     db.session.commit()
-    return jsonify({"message": f"succesfully deleted user {mechanic_id}"})
+    return jsonify({"message": f"Succesfully deleted user {mechanic_id}"})

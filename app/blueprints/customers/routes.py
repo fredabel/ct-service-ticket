@@ -4,9 +4,13 @@ from app.blueprints.customers.schemas import customer_schema, customers_schema
 from marshmallow import ValidationError
 from app.models import Customer, db
 from sqlalchemy import select, delete
+from app.extensions import limiter
+from app.extensions import cache
 
 #Create a new customer
 @customers_bp.route("/",methods=['POST'])
+#To prevent spamming of new customer creation.
+@limiter.limit("20 per minute") # Limit to 20 requests per minute
 def create_customer():
     try:
         customer_data = customer_schema.load(request.json)
@@ -26,6 +30,13 @@ def create_customer():
 
 #Get all customers
 @customers_bp.route("/",methods=['GET'])
+
+# Cache the list of mechanics since it doesn’t change often.
+@cache.cached(timeout=60) # Cache the response for 60 seconds
+
+# This route could be called frequently, so rate limiting can prevent excessive requests.
+@limiter.limit("10 per minute")  # Limit to 10 requests per minute
+
 def get_customers():
     query = select(Customer)
     customers = db.session.execute(query).scalars().all()
@@ -35,6 +46,13 @@ def get_customers():
 
 #Get a customer
 @customers_bp.route("/<int:customer_id>",methods=['GET'])
+
+#This route could also be abused if someone tries to brute force mechanic IDs.
+@limiter.limit("15 per minute")  # Limit to 15 requests per minute
+
+#Cache individual mechanic details to reduce database lookups.
+@cache.cached(timeout=30) # Cache the response for 30 seconds
+
 def get_customer(customer_id):
     
     query = select(Customer).where(Customer.id == customer_id)

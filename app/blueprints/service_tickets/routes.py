@@ -39,3 +39,16 @@ def get_service_tickets():
     query = select(ServiceTicket)
     result = db.session.execute(query).scalars().all()
     return service_tickets_schema.jsonify(result), 200
+
+#Delete a service ticket
+@service_tickets_bp.route("/<int:ticket_id>", methods=['DELETE'])
+def delete_service_ticket(ticket_id):
+    query = select(ServiceTicket).where(ServiceTicket.id == ticket_id)
+    service_ticket = db.session.execute(query).scalars().first()
+    if not service_ticket:
+        return jsonify({"message": "Service ticket not found"}), 404
+    
+    db.session.delete(service_ticket)
+    db.session.commit()
+    
+    return jsonify({"message": "Service ticket deleted successfully"}), 200
