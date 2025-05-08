@@ -18,7 +18,6 @@ def create_mechanic():
         email_exist = db.session.execute(select(Mechanic).where(Mechanic.email == mechanic_data['email'])).scalar_one_or_none()
         if email_exist:
             return jsonify({"status":"error","message": "A mechanic with this email already exists!"}), 400
-        
     except ValidationError as err:
         return jsonify(err.messages), 400
     new_mechanic = Mechanic(
@@ -35,14 +34,20 @@ def create_mechanic():
 # This route retrieves all mechanics.
 # Cached for 60 seconds to improve performance.
 # Rate limited to 10 requests per minute to prevent excessive requests.
+# Pagination is implemented to limit the number of mechanics returned in a single request.
 @mechanics_bp.route("/",methods=['GET'])
 @cache.cached(timeout=60) 
 @limiter.limit("10 per minute")
 def get_mechanics():
-    query = select(Mechanic)
-    mechanics = db.session.execute(query).scalars().all()
-    if mechanics == None:
-        return jsonify({"message":"Invalid mechanic"}), 404
+    try:
+        page = int(request.args.get('page'))
+        per_page = int(request.args.get('per_page'))
+        query = select(Mechanic)
+        mechanics = db.paginate(query, page=page, per_page=per_page)
+        return mechanics_schema.jsonify(mechanics), 200
+    except:
+        query = select(Mechanic)
+        mechanics = db.session.execute(query).scalars().all()
     return mechanics_schema.jsonify(mechanics), 200
 
 # -------------------- Get a Specific Mechanic --------------------
@@ -92,3 +97,21 @@ def delete_mechanic(mechanic_id):
     db.session.delete(mechanic)
     db.session.commit()
     return jsonify({"message": f"Succesfully deleted user {mechanic_id}"}), 200
+
+# -------------------- Get Popular Mechanics --------------------
+# This route retrieves the mechanics based on the number of service tickets they have handled.
+@mechanics_bp.route("/popular", methods=['GET'])
+def popular_mechanics():
+    query = select(Mechanic)
+    mechanics = db.session.execute(query).scalars().all()
+    mechanics.sort(key=lambda mechanic: len(mechanic.service_tickets), reverse=True)
+    return mechanics_schema.jsonify(mechanics), 200
+
+# -------------------- Search Mechanics --------------------
+# This route allows searching for mechanics by their name.
+@mechanics_bp.route("/search", methods=['GET'])
+def search_mechanics():
+    name = request.args.get('name')
+    query = select(Mechanic).where(Mechanic.name.like(f'%{name}%'))
+    mechanics = db.session.execute(query).scalars().all()
+    return mechanics_schema.jsonify(mechanics), 200

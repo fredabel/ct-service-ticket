@@ -62,11 +62,18 @@ def create_customer():
 # Cached for 60 seconds to improve performance.
 # Rate limited to 10 requests per minute to prevent excessive requests.
 @customers_bp.route("/",methods=['GET'])
-@cache.cached(timeout=60)
+# @cache.cached(timeout=60)
 @limiter.limit("10 per minute")
 def get_customers():
-    query = select(Customer)
-    customers = db.session.execute(query).scalars().all()
+    try:
+        page = int(request.args.get('page'))
+        per_page = int(request.args.get('per_page'))
+        query = select(Customer)
+        customers = db.paginate(query, page=page, per_page=per_page)
+        return customers_schema.jsonify(customers), 200
+    except:
+        query = select(Customer)
+        customers = db.session.execute(query).scalars().all()
     return customers_schema.jsonify(customers), 200
 
 # -------------------- Get a Specific Customer --------------------
