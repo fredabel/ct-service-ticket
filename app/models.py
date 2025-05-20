@@ -21,7 +21,7 @@ class Customer(Base):
     name: Mapped[str] = mapped_column(db.String(100), nullable=False)
     email: Mapped[str] = mapped_column(db.String(100),unique=True, nullable=False)
     phone: Mapped[str] = mapped_column(db.String(100), nullable=False)
-    password: Mapped[str] = mapped_column(db.String(100), nullable=False)
+    password: Mapped[str] = mapped_column(db.String(255), nullable=False)
 
     service_tickets: Mapped[List["ServiceTicket"]] = db.relationship(back_populates="customer" ,cascade="all, delete")
     
@@ -31,6 +31,7 @@ class Mechanic(Base):
     id : Mapped[int] = mapped_column(primary_key=True)
     name: Mapped[str] = mapped_column(db.String(100), nullable=False)
     email: Mapped[str] = mapped_column(db.String(100),unique=True, nullable=False)
+    password: Mapped[str] = mapped_column(db.String(255), nullable=False)
     phone: Mapped[str] = mapped_column(db.String(100), nullable=False)
     salary: Mapped[float] = mapped_column(db.Numeric(10, 2), nullable=False)
     
@@ -47,4 +48,24 @@ class ServiceTicket(Base):
     
     customer: Mapped["Customer"] = db.relationship(back_populates="service_tickets")
     mechanics: Mapped[List["Mechanic"]] = db.relationship(secondary=service_mechanic, back_populates="service_tickets")
+    ticket_items: Mapped[List["SerializedPart"]] = db.relationship(back_populates="ticket")
+
+class PartDescription(Base):
+    __tablename__ = "part_descriptions"
     
+    id: Mapped[int] = mapped_column(primary_key=True)
+    name: Mapped[str] = mapped_column(db.String(255), nullable=False)
+    brand: Mapped[str] = mapped_column(db.String(255), nullable=False)
+    price: Mapped[float] = mapped_column(db.Numeric(10, 2), nullable=False)
+    
+    serial_items : Mapped[List["SerializedPart"]] = db.relationship(back_populates="description")
+
+class SerializedPart(Base):
+    __tablename__ = "serialized_parts"
+    
+    id: Mapped[int] = mapped_column(primary_key=True)
+    desc_id: Mapped[int] = mapped_column(db.ForeignKey('part_descriptions.id'), nullable=False)
+    ticket_id: Mapped[int] = mapped_column(db.ForeignKey('service_tickets.id'), nullable=True)
+    
+    description: Mapped["PartDescription"] = db.relationship(back_populates="serial_items")
+    ticket: Mapped["ServiceTicket"] = db.relationship(back_populates="ticket_items")

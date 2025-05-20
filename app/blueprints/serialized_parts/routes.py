@@ -10,9 +10,9 @@ from app.utils.util import token_required
 
 # -------------------- Create a Serialized Part --------------------
 # This route allows the creation of a new serialized part.
-# Rate limited to 20 requests per minute to prevent spamming.
+# Rate limited to 10 requests per hour to prevent spamming.
 @serialized_parts_bp.route("/",methods=['POST'])
-@limiter.limit("20 per minute")
+@limiter.limit("10/minute")
 def create_serialized_part():
     try:
         serialized_part_data = serialized_part_schema.load(request.json)
@@ -48,7 +48,7 @@ def get_serialized_parts():
 # This route allows searching for serialized parts by name.
 # Rate limited to 15 requests per minute.
 @serialized_parts_bp.route("/search", methods=['GET'])
-@limiter.limit("15 per minute")
+@limiter.limit("15/minute")
 def search_serialized_parts():
     name = request.args.get('name')
     query = select(SerializedPart).where(SerializedPart.name.like(f'%{name}%'))
@@ -57,10 +57,11 @@ def search_serialized_parts():
 
 # -------------------- Update a Serialized Part --------------------
 # This route allows updating a serialized part by its ID.
-# Rate limited to 10 requests per minute.
+# Rate limited to 10 requests per hour.
 @serialized_parts_bp.route("/<int:serialized_part_id>", methods=['PUT'])
-@limiter.limit("10 per minute")
+@limiter.limit("10/hour")
 def update_serialized_part(serialized_part_id):
+    
     try:
         serialized_part_data = serialized_part_schema.load(request.json)
     except ValidationError as err:
@@ -68,38 +69,42 @@ def update_serialized_part(serialized_part_id):
     
     serialized_part = db.session.get(SerializedPart, serialized_part_id)
     if not serialized_part:
-        return jsonify({"status": "error","message":"Part description not found"}), 404
+        return jsonify({"status": "error","message":"Serialized part not found"}), 404
     
     for field, value in serialized_part_data.items():
         setattr(serialized_part, field, value)
     
     db.session.commit()
-    return jsonify({"status": "success","message":"Successfully updated part description","serialized_part": serialized_part_schema.dump(serialized_part)}), 200
+    return jsonify({"status": "success","message":"Successfully updated serialized part ","serialized_part": serialized_part_schema.dump(serialized_part)}), 200
 
 # -------------------- Delete a Serialized Part --------------------
 # This route allows deleting a serialized part by its ID.
-# Rate limited to 10 requests per minute.
+# Rate limited to 5 requests per day.
 @serialized_parts_bp.route("/<int:serialized_part_id>", methods=['DELETE'])
-@limiter.limit("10 per minute")
+@limiter.limit("5/day")
 def delete_serialized_part(serialized_part_id):
     serialized_part = db.session.get(SerializedPart, serialized_part_id)
     if not serialized_part:
-        return jsonify({"status": "error","message":"Part description not found"}), 404
+        return jsonify({"status": "error","message":"Serialized part not found"}), 404
     
     db.session.delete(serialized_part)
     db.session.commit()
-    return jsonify({"status": "success","message": "Successfully deleted part description"}), 200
+    return jsonify({"status": "success","message": "Successfully deleted serialized part"}), 200
 
 # -------------------- Get All Stock --------------------
 # This route retrieves all stock of serialized parts.
 # Cached for 60 seconds to improve performance.
 # Rate limited to 10 requests per minute.
 @serialized_parts_bp.route("/inventory", methods=['GET'])
-@cache.cached(timeout=60)
-@limiter.limit("10 per minute")
+# @cache.cached(timeout=60)
+# @limiter.limit("10 per minute")
 def get_all_stock():
     query = select(PartDescription)
     parts_description = db.session.execute(query).scalars().all()
+    # Check if there are any part descriptions
+    if not parts_description:
+        return jsonify({"status": "error","message":"No part descriptions found"}), 404
+    
     stock = []
     for part_description in parts_description:
         part_items = part_description.serial_items
@@ -107,26 +112,30 @@ def get_all_stock():
         for part in part_items:
             if not part.ticket_id:
                 count += 1
-        data = part_description_schema.dump(part_description)
-        data["stock"] = count
-        stock.append(data)          
+        stock.append({
+            "part_description": part_description_schema.dump(part_description),
+            "stock": count
+        })
     return jsonify(stock), 200
   
 # -------------------- Get Individual Stock --------------------
 # This route allows getting the stock of a specific part by its ID.
 # Cached for 30 seconds to reduce database lookups.
-# Rate limited to 15 requests per minute.  
+# Rate limited to 10 requests per minute.  
 @serialized_parts_bp.route("/inventory/<int:part_id>", methods=['GET'])
-@cache.cached(timeout=30)
-@limiter.limit("15 per minute")
+# @cache.cached(timeout=30)
+@limiter.limit("10/minute")
 def get_individual_stock(part_id):
+    
     part_description = db.session.get(PartDescription, part_id)
+    if not part_description:
+        return jsonify({"status": "error","message":"Part description not found"}), 404
+    
     parts = part_description.serial_items
     count = 0
     for part in parts:
         if not part.ticket_id:
             count += 1
-    return jsonify({"item": part_description.name, "stock": count }), 200
-    
+    return jsonify({"part_description": part_description_schema.dump(part_description), "stock": count }), 200
     
     

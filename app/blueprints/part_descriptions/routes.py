@@ -9,9 +9,9 @@ from app.utils.util import token_required
 
 # -------------------- Create a Part Description --------------------
 # This route allows the creation of a new part description.
-# Rate limited to 20 requests per minute to prevent spamming.
+# Rate limited to 20 requests per hour to prevent spamming.
 @part_descriptions_bp.route("/",methods=['POST'])
-@limiter.limit("20 per minute")
+@limiter.limit("20/hour")
 def create_part_description():
     try:
         part_description_data = part_description_schema.load(request.json)
@@ -25,11 +25,11 @@ def create_part_description():
 
 # -------------------- Get All Part Descriptions --------------------
 # This route retrieves all part descriptions.
-# Cached for 60 seconds to improve performance.
+# Cached for 30 seconds to improve performance.
 # Rate limited to 10 requests per minute to prevent excessive requests.
 @part_descriptions_bp.route("/",methods=['GET'])
-@cache.cached(timeout=60)
-@limiter.limit("10 per minute")
+# @cache.cached(timeout=30)
+@limiter.limit("10/hour")
 def get_part_descriptions():
     try:
         page = int(request.args.get('page'))
@@ -44,9 +44,9 @@ def get_part_descriptions():
 
 # -------------------- Update a Part Description --------------------
 # This route allows updating a part description by its ID.
-# Rate limited to 10 requests per minute.
+# Rate limited to 10 requests per hour.
 @part_descriptions_bp.route("/<int:part_description_id>", methods=['PUT'])
-@limiter.limit("10 per minute")
+@limiter.limit("10/hour")
 def update_part_description(part_description_id):
     try:
         part_description_data = part_description_schema.load(request.json)
@@ -65,13 +65,19 @@ def update_part_description(part_description_id):
 
 # -------------------- Delete a Part Description --------------------
 # This route allows deleting a part description by its ID.
-# Rate limited to 10 requests per minute. 
+# Rate limited to 5 requests per day to prevent abuse. 
 @part_descriptions_bp.route("/<int:part_description_id>", methods=['DELETE'])
-@limiter.limit("10 per minute")
+@limiter.limit("5/day")
 def delete_part_description(part_description_id):
+    
     part_description = db.session.get(PartDescription, part_description_id)
+    
     if not part_description:
         return jsonify({"status": "error","message":"Part description not found"}), 404
+    
+    # Check for related serialized parts
+    if part_description.serial_items:
+        return jsonify({"status": "error", "message": "Cannot delete: related serialized parts exist."}), 400
     
     db.session.delete(part_description)
     db.session.commit()
@@ -81,7 +87,7 @@ def delete_part_description(part_description_id):
 # This route allows searching for part descriptions by name.
 # Rate limited to 15 requests per minute.
 @part_descriptions_bp.route("/search", methods=['GET'])
-@limiter.limit("15 per minute")
+@limiter.limit("15/minute")
 def search_part_descriptions():
     name = request.args.get('name')
     query = select(PartDescription).where(PartDescription.name.like(f'%{name}%'))

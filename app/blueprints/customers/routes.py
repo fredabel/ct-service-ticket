@@ -1,13 +1,13 @@
 from flask import request, jsonify
 from app.blueprints.customers import customers_bp
-from app.blueprints.customers.schemas import customer_schema, customers_schema, login_schema
+from app.blueprints.customers.schemas import customer_schema, customers_schema, login_schema, my_tickets_schema
 from marshmallow import ValidationError
 from app.models import Customer, db
 from sqlalchemy import select, delete
 from app.extensions import limiter
 from app.extensions import cache
 from app.utils.util import encode_token, token_required
-
+from werkzeug.security import generate_password_hash, check_password_hash
 
 # -------------------- Login Route --------------------
 # This route allows customers to log in using their email and password.
@@ -22,12 +22,12 @@ def login():
         return jsonify(err.messages), 400
     query = select(Customer).where(Customer.email == email)
     customer = db.session.execute(query).scalars().first()
-
-    if customer and customer.password == password:
-        token = encode_token(customer.id)
+    print(customer.email)
+    if customer and check_password_hash(customer.password, password):
+        token = encode_token(customer.id, "customer")
         response = {
             "status": "success",
-            "message": "successfully logged in.",
+            "message": "Successfully logged in.",
             "token": token
         }
         return jsonify(response), 200
@@ -36,9 +36,9 @@ def login():
 
 # -------------------- Create a New Customer --------------------
 # This route allows the creation of a new customer.
-# Rate limited to 20 requests per minute to prevent spamming.
+# Rate limited to 10 requests per hour to prevent spamming.
 @customers_bp.route("/",methods=['POST'])
-@limiter.limit("20 per minute") 
+@limiter.limit("3/hour")
 def create_customer():
     try:
         customer_data = customer_schema.load(request.json)
@@ -47,23 +47,21 @@ def create_customer():
             return jsonify({"status":"error","message": "A customer with this email already exists!"}), 400
     except ValidationError as err:
         return jsonify(err.messages), 400
-    new_customer = Customer(
-        name = customer_data['name'],
-        email = customer_data['email'],
-        phone = customer_data['phone'],
-        password = customer_data['password']
-    )
+    
+    customer_data['password'] = generate_password_hash(customer_data['password'])
+    new_customer = Customer(**customer_data)
+    
     db.session.add(new_customer)
     db.session.commit()
     return jsonify({"message":"Successfully created customer","customer": customer_schema.dump(new_customer)}), 201
 
 # -------------------- Get All Customers --------------------
 # This route retrieves all customers.
-# Cached for 60 seconds to improve performance.
-# Rate limited to 10 requests per minute to prevent excessive requests.
+# Cached for 30 seconds to improve performance.
+# Rate limited to 10 requests per hour to prevent abuse.
 @customers_bp.route("/",methods=['GET'])
-# @cache.cached(timeout=60)
-@limiter.limit("10 per minute")
+@cache.cached(timeout=30)
+@limiter.limit("10/hour")
 def get_customers():
     try:
         page = int(request.args.get('page'))
@@ -79,10 +77,9 @@ def get_customers():
 # -------------------- Get a Specific Customer --------------------
 # This route retrieves a specific customer by their ID.
 # Cached for 30 seconds to reduce database lookups.
-# Rate limited to 15 requests per minute to prevent abuse.
 @customers_bp.route("/<int:customer_id>",methods=['GET'])
-@limiter.limit("15 per minute")
-@cache.cached(timeout=30)
+@limiter.exempt
+# @cache.cached(timeout=30)
 def get_customer(customer_id):
     query = select(Customer).where(Customer.id == customer_id)
     customer = db.session.execute(query).scalars().first()
@@ -93,14 +90,18 @@ def get_customer(customer_id):
 # -------------------- Update a Customer --------------------
 # This route allows updating a customer's details by their ID.
 # Validates the input and ensures the email is unique.
-@customers_bp.route("/<int:customer_id>", methods=['PUT'])
-def update_customer(customer_id):
-    query = select(Customer).where(Customer.id == customer_id)
+# Rate limited to 5 requests per hour to prevent abuse.
+@customers_bp.route("/", methods=['PUT'])
+@limiter.limit("5/hour")
+@token_required
+def update_customer():
+    query = select(Customer).where(Customer.id == request.userid)
     customer = db.session.execute(query).scalars().first()
+    print(customer)
     if customer == None:
         return jsonify({"message":"Invalid customer"}), 404
     try:
-        customer_data = customer_schema.load(request.json)    
+        customer_data = customer_schema.load(request.json)
     except ValidationError as err:
         return jsonify(err.messages), 400
     if customer_data['email'] != customer.email:
@@ -114,14 +115,31 @@ def update_customer(customer_id):
 
 # -------------------- Delete a Customer --------------------
 # This route allows deleting a customer by their ID.
+# Rate limited to 5 requests per day to prevent abuse.
 # Requires a valid token for authentication.
 @customers_bp.route("/", methods=['DELETE'])
+@limiter.limit("5/day")
 @token_required
-def delete_customer(customer_id):
-    query = select(Customer).where(Customer.id == customer_id)
+def delete_customer():
+    query = select(Customer).where(Customer.id == request.userid)
     customer = db.session.execute(query).scalars().first()
     if customer == None:
         return jsonify({"message":"Invalid customer"}), 404
     db.session.delete(customer)
     db.session.commit()
-    return jsonify({"message": f"succesfully deleted user {customer_id}"}), 200
+    return jsonify({"message": f"succesfully deleted user {request.userid}"}), 200
+
+# -------------------- Get a Customer's Tickets --------------------
+# This route retrieves all service tickets for a specific customer by their ID.
+@customers_bp.route("/my-tickets", methods=['GET'])
+@limiter.exempt
+@token_required
+def get_customer_tickets():
+    if request.user_type != "customer":
+        return jsonify({"message": "Unauthorized access!"}), 403
+    
+    query = select(Customer).where(Customer.id == request.userid)
+    customer = db.session.execute(query).scalars().first()
+    if customer is None:
+        return jsonify({"message": "Invalid customer"}), 404
+    return jsonify({"customer": my_tickets_schema.dump(customer)}), 200

@@ -4,6 +4,8 @@ from app.extensions import ma, limiter, cache
 from app.blueprints.customers import customers_bp
 from app.blueprints.mechanics import mechanics_bp
 from app.blueprints.service_tickets import service_tickets_bp
+from app.blueprints.part_descriptions import part_descriptions_bp
+from app.blueprints.serialized_parts import serialized_parts_bp
 
 def create_app(config_name):
     app = Flask(__name__)
@@ -16,7 +18,8 @@ def create_app(config_name):
 
     app.register_blueprint(customers_bp, url_prefix='/customers')
     app.register_blueprint(mechanics_bp, url_prefix='/mechanics')
-    app.register_blueprint(service_tickets_bp, url_prefix='/service_tickets')
-    
+    app.register_blueprint(service_tickets_bp, url_prefix='/service-tickets')
+    app.register_blueprint(part_descriptions_bp, url_prefix='/part_descriptions')
+    app.register_blueprint(serialized_parts_bp, url_prefix='/serialized_parts')
     
     return app
