@@ -77,13 +77,18 @@ def edit_service_tickets(service_ticket_id):
         
         if mechanic and mechanic not in service_ticket.mechanics:
             service_ticket.mechanics.append(mechanic)
-            
+        else:
+            return jsonify({"message": f"The mechanic {mechanic_id} already exists in this ticket."}), 400
+    
     for mechanic_id in ticket_data['remove_mechanic_ids']:
         query = select(Mechanic).where(Mechanic.id==mechanic_id)
         mechanic = db.session.execute(query).scalars().first()
         
         if mechanic and mechanic in service_ticket.mechanics:
-            service_ticket.mechanics.remove(mechanic)   
+            service_ticket.mechanics.remove(mechanic)
+        else:
+            return jsonify({"message": f"The mechanic {mechanic_id} not exist in this ticket."}), 400
+
     db.session.commit()
     return return_service_ticket_schema.jsonify(service_ticket), 200
 
@@ -145,7 +150,7 @@ def add_item(ticket_id, part_id):
             return jsonify({
                 'message': f"Part {part.description.name} successfully added to ticket",
                 'part': part_description_schema.dump(part.description),
-                'service_ticket': service_ticket_schema.dump(ticket),
+                # 'service_ticket': service_ticket_schema.dump(ticket),
                 'items': serialized_parts_schema.dump(ticket.ticket_items)
             }), 200
         return jsonify({"error": "Part already assigned to a ticket."}), 400  

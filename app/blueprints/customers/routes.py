@@ -22,7 +22,7 @@ def login():
         return jsonify(err.messages), 400
     query = select(Customer).where(Customer.email == email)
     customer = db.session.execute(query).scalars().first()
-    print(customer.email)
+
     if customer and check_password_hash(customer.password, password):
         token = encode_token(customer.id, "customer")
         response = {
@@ -97,11 +97,11 @@ def get_customer(customer_id):
 def update_customer():
     query = select(Customer).where(Customer.id == request.userid)
     customer = db.session.execute(query).scalars().first()
-    print(customer)
     if customer == None:
         return jsonify({"message":"Invalid customer"}), 404
     try:
         customer_data = customer_schema.load(request.json)
+        customer_data['password'] = generate_password_hash(customer_data['password'])
     except ValidationError as err:
         return jsonify(err.messages), 400
     if customer_data['email'] != customer.email:
@@ -135,8 +135,8 @@ def delete_customer():
 @limiter.exempt
 @token_required
 def get_customer_tickets():
-    if request.user_type != "customer":
-        return jsonify({"message": "Unauthorized access!"}), 403
+    # if request.user_type != "customer":
+    #     return jsonify({"message": "Unauthorized access!"}), 403
     
     query = select(Customer).where(Customer.id == request.userid)
     customer = db.session.execute(query).scalars().first()

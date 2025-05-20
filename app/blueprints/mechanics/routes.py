@@ -98,7 +98,8 @@ def update_mechanic():
     if mechanic == None:
         return jsonify({"message":"Invalid mechanic"}), 404
     try:
-        mechanic_data = mechanic_schema.load(request.json)    
+        mechanic_data = mechanic_schema.load(request.json) 
+        mechanic_data['password'] = generate_password_hash(mechanic_data['password'])  
     except ValidationError as err:
         return jsonify(err.messages), 400
     if mechanic_data['email'] != mechanic.email:
