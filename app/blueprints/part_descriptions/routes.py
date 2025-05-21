@@ -42,6 +42,20 @@ def get_part_descriptions():
         part_descriptions = db.session.execute(query).scalars().all()
     return part_descriptions_schema.jsonify(part_descriptions), 200
 
+
+# -------------------- Get a Specific Part Descriptions --------------------
+# This route retrieves a specific part description by their ID.
+# Cached for 30 seconds to reduce database lookups.
+@part_descriptions_bp.route("/<int:part_description_id>",methods=['GET'])
+@limiter.exempt
+# @cache.cached(timeout=30)
+def get_mechanic(part_description_id):
+    query = select(PartDescription).where(PartDescription.id == part_description_id)
+    part_description = db.session.execute(query).scalars().first()
+    if part_description == None:
+        return jsonify({"message":"Invalid part description"}), 404
+    return part_description_schema.jsonify(part_description), 200
+
 # -------------------- Update a Part Description --------------------
 # This route allows updating a part description by its ID.
 # Rate limited to 10 requests per hour.

@@ -149,9 +149,9 @@ def add_item(ticket_id, part_id):
             db.session.commit()
             return jsonify({
                 'message': f"Part {part.description.name} successfully added to ticket",
-                'part': part_description_schema.dump(part.description),
-                # 'service_ticket': service_ticket_schema.dump(ticket),
-                'items': serialized_parts_schema.dump(ticket.ticket_items)
+                # 'part': part_description_schema.dump(part.description),
+                'service_ticket': service_ticket_schema.dump(ticket),
+                # 'items': serialized_parts_schema.dump(ticket.ticket_items)
             }), 200
         return jsonify({"error": "Part already assigned to a ticket."}), 400  
     return jsonify({"error": "Invalid ticket_id."}), 400
@@ -174,7 +174,7 @@ def remove_part_from_ticket(ticket_id, part_id):
         return jsonify({
             'message': f"Part {part.description.name} successfully removed from ticket",
             'service_ticket': service_ticket_schema.dump(ticket),
-            'items': serialized_parts_schema.dump(ticket.ticket_items)
+            # 'items': serialized_parts_schema.dump(ticket.ticket_items)
         }), 200
     else:
         return jsonify({"error": "Part not assigned to this ticket."}), 400

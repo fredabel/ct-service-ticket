@@ -219,7 +219,7 @@
 							"bearer": [
 								{
 									"key": "token",
-									"value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE3NDc3NjY5MTIsImlhdCI6MTc0Nzc2MzMxMiwic3ViIjoiMSIsInVzZXJfdHlwZSI6ImN1c3RvbWVyIn0.zAE8Iv2J6sNuf3q3Bd8TogLuFsgb6IcxtQyKTfoXj6M",
+									"value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE3NDc4NDkwMzYsImlhdCI6MTc0Nzg0NTQzNiwic3ViIjoiMSIsInVzZXJfdHlwZSI6ImN1c3RvbWVyIn0.6HIhCzn2H9RsccWK06k0uHY8d6VoikNH3drBl8E5Tdg",
 									"type": "string"
 								}
 							]
@@ -519,7 +519,7 @@
 					"response": []
 				},
 				{
-					"name": "Get all Service Tickets",
+					"name": "Get All Service Tickets",
 					"request": {
 						"method": "GET",
 						"header": [],
@@ -546,7 +546,7 @@
 						"method": "PUT",
 						"header": [],
 						"url": {
-							"raw": "http://127.0.0.1:5000/service-tickets/4/add-mechanic/2",
+							"raw": "http://127.0.0.1:5000/service-tickets/2/add-mechanic/4",
 							"protocol": "http",
 							"host": [
 								"127",
@@ -557,59 +557,9 @@
 							"port": "5000",
 							"path": [
 								"service-tickets",
-								"4",
+								"2",
 								"add-mechanic",
-								"2"
-							]
-						}
-					},
-					"response": []
-				},
-				{
-					"name": "Add Serialized Part To Ticket",
-					"request": {
-						"method": "PUT",
-						"header": [],
-						"url": {
-							"raw": "http://127.0.0.1:5000/service-tickets/4/add-part/4",
-							"protocol": "http",
-							"host": [
-								"127",
-								"0",
-								"0",
-								"1"
-							],
-							"port": "5000",
-							"path": [
-								"service-tickets",
-								"4",
-								"add-part",
 								"4"
-							]
-						}
-					},
-					"response": []
-				},
-				{
-					"name": "Remove Serialized Part To Ticket",
-					"request": {
-						"method": "PUT",
-						"header": [],
-						"url": {
-							"raw": "http://127.0.0.1:5000/service-tickets/1/remove-part/1",
-							"protocol": "http",
-							"host": [
-								"127",
-								"0",
-								"0",
-								"1"
-							],
-							"port": "5000",
-							"path": [
-								"service-tickets",
-								"1",
-								"remove-part",
-								"1"
 							]
 						}
 					},
@@ -621,7 +571,7 @@
 						"method": "PUT",
 						"header": [],
 						"url": {
-							"raw": "http://127.0.0.1:5000/service-tickets/1/remove-mechanic/2",
+							"raw": "http://127.0.0.1:5000/service-tickets/2/remove-mechanic/4",
 							"protocol": "http",
 							"host": [
 								"127",
@@ -632,8 +582,58 @@
 							"port": "5000",
 							"path": [
 								"service-tickets",
-								"1",
+								"2",
 								"remove-mechanic",
+								"4"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Add Serialized Part To Ticket",
+					"request": {
+						"method": "PUT",
+						"header": [],
+						"url": {
+							"raw": "http://127.0.0.1:5000/service-tickets/2/add-part/2",
+							"protocol": "http",
+							"host": [
+								"127",
+								"0",
+								"0",
+								"1"
+							],
+							"port": "5000",
+							"path": [
+								"service-tickets",
+								"2",
+								"add-part",
+								"2"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Remove Serialized Part To Ticket",
+					"request": {
+						"method": "PUT",
+						"header": [],
+						"url": {
+							"raw": "http://127.0.0.1:5000/service-tickets/2/remove-part/2",
+							"protocol": "http",
+							"host": [
+								"127",
+								"0",
+								"0",
+								"1"
+							],
+							"port": "5000",
+							"path": [
+								"service-tickets",
+								"2",
+								"remove-part",
 								"2"
 							]
 						}
@@ -765,13 +765,36 @@
 					"response": []
 				},
 				{
+					"name": "Get Part Descriptions By Id",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "http://127.0.0.1:5000/part_descriptions/2",
+							"protocol": "http",
+							"host": [
+								"127",
+								"0",
+								"0",
+								"1"
+							],
+							"port": "5000",
+							"path": [
+								"part_descriptions",
+								"2"
+							]
+						}
+					},
+					"response": []
+				},
+				{
 					"name": "Update Part Description",
 					"request": {
 						"method": "PUT",
 						"header": [],
 						"body": {
 							"mode": "raw",
-							"raw": "{\r\n    \"name\": \"Tire\",\r\n    \"brand\": \"Pirelli\",\r\n    \"price\": 1000.00\r\n}",
+							"raw": "{\r\n    \"name\": \"Tire\",\r\n    \"brand\": \"Pirelli\",\r\n    \"price\": 100.00\r\n}",
 							"options": {
 								"raw": {
 									"language": "json"
@@ -896,7 +919,7 @@
 					"response": []
 				},
 				{
-					"name": "Get all serialized part",
+					"name": "Get All Serialized Parts",
 					"request": {
 						"method": "GET",
 						"header": [],
@@ -928,6 +951,29 @@
 					"response": []
 				},
 				{
+					"name": "Get Serialized Part By ID",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "http://127.0.0.1:5000/serialized_parts/1",
+							"protocol": "http",
+							"host": [
+								"127",
+								"0",
+								"0",
+								"1"
+							],
+							"port": "5000",
+							"path": [
+								"serialized_parts",
+								"1"
+							]
+						}
+					},
+					"response": []
+				},
+				{
 					"name": "Get All Inventory",
 					"request": {
 						"method": "GET",
@@ -951,12 +997,12 @@
 					"response": []
 				},
 				{
-					"name": "Delete Serialized Part",
+					"name": "Get Inventory By Serialized Part",
 					"request": {
-						"method": "DELETE",
+						"method": "GET",
 						"header": [],
 						"url": {
-							"raw": "http://127.0.0.1:5000/serialized_parts/12",
+							"raw": "http://127.0.0.1:5000/serialized_parts/inventory/2",
 							"protocol": "http",
 							"host": [
 								"127",
@@ -967,7 +1013,8 @@
 							"port": "5000",
 							"path": [
 								"serialized_parts",
-								"12"
+								"inventory",
+								"2"
 							]
 						}
 					},
@@ -1006,12 +1053,12 @@
 					"response": []
 				},
 				{
-					"name": "Get Inventory By Serialized Part",
+					"name": "Delete Serialized Part",
 					"request": {
-						"method": "GET",
+						"method": "DELETE",
 						"header": [],
 						"url": {
-							"raw": "http://127.0.0.1:5000/serialized_parts/inventory/2",
+							"raw": "http://127.0.0.1:5000/serialized_parts/12",
 							"protocol": "http",
 							"host": [
 								"127",
@@ -1022,8 +1069,7 @@
 							"port": "5000",
 							"path": [
 								"serialized_parts",
-								"inventory",
-								"2"
+								"12"
 							]
 						}
 					},

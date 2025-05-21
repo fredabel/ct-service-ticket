@@ -11,3 +11,5 @@ class SerializedPartSchema(ma.SQLAlchemyAutoSchema):
 
 serialized_part_schema = SerializedPartSchema()
 serialized_parts_schema = SerializedPartSchema(many=True)
+serialized_part_schema_no_ticket = SerializedPartSchema(exclude=["ticket"])
+serialized_parts_schema_no_ticket = SerializedPartSchema(many=True, exclude=["ticket"])

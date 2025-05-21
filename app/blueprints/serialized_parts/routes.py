@@ -1,6 +1,6 @@
 from flask import request, jsonify
 from app.blueprints.serialized_parts import serialized_parts_bp
-from app.blueprints.serialized_parts.schemas import serialized_part_schema, serialized_parts_schema
+from app.blueprints.serialized_parts.schemas import serialized_part_schema, serialized_parts_schema, serialized_part_schema_no_ticket, serialized_parts_schema_no_ticket
 from app.blueprints.part_descriptions.schemas import part_description_schema
 from marshmallow import ValidationError
 from app.models import SerializedPart, PartDescription, db
@@ -31,18 +31,31 @@ def create_serialized_part():
 # This route retrieves all serialized parts.
 # Cached for 60 seconds to improve performance.
 @serialized_parts_bp.route("/",methods=['GET'])
-@cache.cached(timeout=60)
+# @cache.cached(timeout=60)
 def get_serialized_parts():
     try:
         page = int(request.args.get('page'))
         per_page = int(request.args.get('per_page'))
         query = select(SerializedPart)
         serialized_parts = db.paginate(query, page=page, per_page=per_page)
-        return serialized_parts_schema.jsonify(serialized_parts), 200
+        return serialized_parts_schema_no_ticket.jsonify(serialized_parts), 200
     except:
         query = select(SerializedPart)
         serialized_parts = db.session.execute(query).scalars().all()
-    return serialized_parts_schema.jsonify(serialized_parts), 200
+    return serialized_parts_schema_no_ticket.jsonify(serialized_parts), 200
+
+# -------------------- Get a Specific Serialized Part --------------------
+# This route retrieves a specific serialized part by their ID.
+# Cached for 30 seconds to reduce database lookups.
+@serialized_parts_bp.route("/<int:part_id>",methods=['GET'])
+@limiter.exempt
+# @cache.cached(timeout=30)
+def get_mechanic(part_id):
+    query = select(SerializedPart).where(SerializedPart.id == part_id)
+    serialized_part = db.session.execute(query).scalars().first()
+    if serialized_part == None:
+        return jsonify({"message":"Invalid serialized part description"}), 404
+    return serialized_part_schema_no_ticket.jsonify(serialized_part), 200
 
 # -------------------- Search Serialized Parts --------------------
 # This route allows searching for serialized parts by name.
