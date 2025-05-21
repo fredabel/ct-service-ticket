@@ -1,20 +1,23 @@
 # Service Ticket Management System
 
-A Flask-based web application for managing service tickets, customers, and mechanics. This project allows users to create, retrieve, and manage service tickets while associating them with customers and mechanics.
+A Flask-based web application for managing customers, mechanics, service tickets, serialized parts, and inventory for an automotive service business. This project allows users to create, retrieve, and manage service tickets while associating them with customers and mechanics.
+
 
 ## Features
-
-- **Create Service Tickets**: Add new service tickets with details like service date, description, customer, and associated mechanics.
-- **Retrieve Service Tickets**: View all service tickets with customer and mechanic details.
-- **Customer Management**: Associate service tickets with customers.
-- **Mechanic Management**: Assign multiple mechanics to a service ticket.
+- **User Authentication**: JWT-based login for customers and mechanics.
+- **Service Ticket Management**: Create, edit, assign mechanics/parts, and delete tickets.
+- **Inventory Management**: Track serialized parts and part descriptions.
+- **Rate Limiting & Caching**: Prevent abuse and improve performance.
+- **Comprehensive API**: CRUD operations for all major resources.
 
 ## Technologies Used
-
 - **Backend**: Flask (Python)
 - **Database**: SQLAlchemy (with SQLite or other supported databases)
 - **Serialization**: Marshmallow for schema validation and serialization
 - **ORM**: Flask-SQLAlchemy
+- **Authentication**: JWT (python-jose)
+- **Rate Limiting**: Flask-Limiter
+- **Caching**: Flask-Caching
 
 ## Installation
 
