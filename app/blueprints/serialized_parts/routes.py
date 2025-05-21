@@ -3,7 +3,7 @@ from app.blueprints.serialized_parts import serialized_parts_bp
 from app.blueprints.serialized_parts.schemas import serialized_part_schema, serialized_parts_schema, serialized_part_schema_no_ticket, serialized_parts_schema_no_ticket
 from app.blueprints.part_descriptions.schemas import part_description_schema
 from marshmallow import ValidationError
-from app.models import SerializedPart, PartDescription, db
+from app.models import SerializedPart, PartDescription, ServiceTicket, db
 from sqlalchemy import select, delete
 from app.extensions import cache, limiter
 from app.utils.util import token_required
@@ -77,13 +77,27 @@ def update_serialized_part(serialized_part_id):
     
     try:
         serialized_part_data = serialized_part_schema.load(request.json)
+
     except ValidationError as err:
         return jsonify(err.messages), 400
+    
+    part_description = db.session.get(PartDescription, serialized_part_data['desc_id'])
+    if not part_description:
+        return jsonify({"status": "error","message":"Part description not found"}), 404
+    
+    ticket = db.session.get(ServiceTicket, serialized_part_data['ticket_id'])
+    if not ticket:
+        return jsonify({"status": "error","message":"Service ticket not found"}), 404
     
     serialized_part = db.session.get(SerializedPart, serialized_part_id)
     if not serialized_part:
         return jsonify({"status": "error","message":"Serialized part not found"}), 404
     
+    # if serialized_part.ticket_id == serialized_part_data['ticket_id']:
+    #     return jsonify({"status": "error","message":"Ticket is already assigned to this serialized part"}), 400
+    # if serialized_part.desc_id == serialized_part_data['desc_id']:
+    #     return jsonify({"status": "error","message":"Part description is already assigned to this serialized part"}), 400
+
     for field, value in serialized_part_data.items():
         setattr(serialized_part, field, value)
     
