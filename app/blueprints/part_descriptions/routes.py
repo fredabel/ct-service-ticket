@@ -5,7 +5,7 @@ from marshmallow import ValidationError
 from app.models import PartDescription, db
 from sqlalchemy import select, delete
 from app.extensions import cache, limiter
-from app.utils.util import token_required
+# from app.utils.util import token_required
 
 # -------------------- Create a Part Description --------------------
 # This route allows the creation of a new part description.
@@ -104,6 +104,21 @@ def delete_part_description(part_description_id):
 @limiter.limit("15/minute")
 def search_part_descriptions():
     name = request.args.get('name')
-    query = select(PartDescription).where(PartDescription.name.like(f'%{name}%'))
+    brand = request.args.get('brand')
+    if not name and not brand:
+        return jsonify({"message": "Please provide a name or brand to search"}), 400
+    query = select(PartDescription)
+    filters = []
+    if name:
+        filters.append(PartDescription.name.ilike(f"%{name}%"))
+    if brand:
+        filters.append(PartDescription.brand.ilike(f"%{brand}%"))
+    if filters:
+        query = query.where(*filters)
+        
     part_descriptions = db.session.execute(query).scalars().all()
+    
+    if not part_descriptions:
+        return jsonify({"message": "No part descriptions found"}), 404
+    
     return part_descriptions_schema.jsonify(part_descriptions), 200

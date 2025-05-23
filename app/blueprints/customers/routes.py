@@ -24,7 +24,7 @@ def login():
     customer = db.session.execute(query).scalars().first()
 
     if customer and check_password_hash(customer.password, password):
-        token = encode_token(customer.id, "customer")
+        token = encode_token(customer.id, role="user")
         response = {
             "status": "success",
             "message": "Successfully logged in.",
@@ -32,7 +32,7 @@ def login():
         }
         return jsonify(response), 200
     else:
-        return jsonify({"message": "Invalid email or password!"}), 401
+        return jsonify({"status":"error","message": "Invalid email or password!"}), 401
 
 # -------------------- Create a New Customer --------------------
 # This route allows the creation of a new customer.
@@ -53,7 +53,7 @@ def create_customer():
     
     db.session.add(new_customer)
     db.session.commit()
-    return jsonify({"message":"Successfully created customer","customer": customer_schema.dump(new_customer)}), 201
+    return jsonify({"status":"success","message":"Successfully created customer","customer": customer_schema.dump(new_customer)}), 201
 
 # -------------------- Get All Customers --------------------
 # This route retrieves all customers.
@@ -72,6 +72,8 @@ def get_customers():
     except:
         query = select(Customer)
         customers = db.session.execute(query).scalars().all()
+    if customers == None:
+        return jsonify({"status": "error","message":"No customers found"}), 404
     return customers_schema.jsonify(customers), 200
 
 # -------------------- Get a Specific Customer --------------------
@@ -84,7 +86,7 @@ def get_customer(customer_id):
     query = select(Customer).where(Customer.id == customer_id)
     customer = db.session.execute(query).scalars().first()
     if customer == None:
-        return jsonify({"message":"Invalid customer"}), 404
+        return jsonify({"status":"error","message":"Invalid customer"}), 404
     return customer_schema.jsonify(customer), 200
 
 # -------------------- Update a Customer --------------------
@@ -98,7 +100,7 @@ def update_customer():
     query = select(Customer).where(Customer.id == request.userid)
     customer = db.session.execute(query).scalars().first()
     if customer == None:
-        return jsonify({"message":"Invalid customer"}), 404
+        return jsonify({"status":"error","message":"Invalid customer"}), 404
     try:
         customer_data = customer_schema.load(request.json)
         customer_data['password'] = generate_password_hash(customer_data['password'])
@@ -107,11 +109,11 @@ def update_customer():
     if customer_data['email'] != customer.email:
         email_exist = db.session.execute(select(Customer).where(Customer.email == customer_data['email'])).scalar_one_or_none()
         if email_exist:
-            return jsonify({"message": "A customer with this email already exists"}), 400
+            return jsonify({"status":"error", "message": "A customer with this email already exists"}), 400
     for field, value in customer_data.items():
         setattr(customer, field, value)
     db.session.commit()
-    return jsonify({"message":"Successfully updated customer","customer": customer_schema.dump(customer)}), 200
+    return jsonify({"status":"error","message":"Successfully updated customer","customer": customer_schema.dump(customer)}), 200
 
 # -------------------- Delete a Customer --------------------
 # This route allows deleting a customer by their ID.
@@ -124,10 +126,10 @@ def delete_customer():
     query = select(Customer).where(Customer.id == request.userid)
     customer = db.session.execute(query).scalars().first()
     if customer == None:
-        return jsonify({"message":"Invalid customer"}), 404
+        return jsonify({"status":"error","message":"Invalid customer"}), 404
     db.session.delete(customer)
     db.session.commit()
-    return jsonify({"message": f"succesfully deleted user {request.userid}"}), 200
+    return jsonify({"status":"success","message": f"Succesfully deleted user {request.userid}"}), 200
 
 # -------------------- Get a Customer's Tickets --------------------
 # This route retrieves all service tickets for a specific customer by their ID.
@@ -135,11 +137,40 @@ def delete_customer():
 @limiter.exempt
 @token_required
 def get_customer_tickets():
-    # if request.user_type != "customer":
-    #     return jsonify({"message": "Unauthorized access!"}), 403
-    
     query = select(Customer).where(Customer.id == request.userid)
     customer = db.session.execute(query).scalars().first()
     if customer is None:
-        return jsonify({"message": "Invalid customer"}), 404
-    return jsonify({"customer": my_tickets_schema.dump(customer)}), 200
+        return jsonify({"status":"error","message":"Invalid customer"}), 404
+    
+    data = my_tickets_schema.dump(customer)
+    data["customer"] = customer_schema.dump(customer)
+    return jsonify(data), 200
+
+
+# -------------------- Search Customer --------------------
+# This route allows searching for mechanics by their name.
+# Cached for 30 seconds to improve performance.
+@customers_bp.route("/search", methods=['GET'])
+# @cache.cached(timeout=30)
+def search_customer():
+    
+    name = request.args.get('name')
+    email = request.args.get('email')
+    
+    if not name and not email:
+        return jsonify({"status":"error","message": "At least one search parameter (name or email) is required."}), 400
+
+    query = select(Customer)
+    filters = []
+    if name:
+        filters.append(Customer.name.ilike(f'%{name}%'))
+    if email:
+        filters.append(Customer.email.ilike(f'%{email}%'))
+    if filters:
+        query = query.where(*filters)
+
+    customers = db.session.execute(query).scalars().all()
+    if not customers:
+        return jsonify({"status": "error","message": "No customers found"}), 404
+
+    return customers_schema.jsonify(customers), 200

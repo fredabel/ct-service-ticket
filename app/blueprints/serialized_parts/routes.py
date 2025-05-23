@@ -6,7 +6,7 @@ from marshmallow import ValidationError
 from app.models import SerializedPart, PartDescription, ServiceTicket, db
 from sqlalchemy import select, delete
 from app.extensions import cache, limiter
-from app.utils.util import token_required
+# from app.utils.util import role_required
 
 # -------------------- Create a Serialized Part --------------------
 # This route allows the creation of a new serialized part.
@@ -18,14 +18,20 @@ def create_serialized_part():
         serialized_part_data = serialized_part_schema.load(request.json)
     except ValidationError as err:
         return jsonify(err.messages), 400
+    
+    part_description = db.session.get(PartDescription, serialized_part_data['desc_id'])
+    
+    if not part_description:
+        return jsonify({"status": "error","message":"Part description not found"}), 404
+    
     new_serialized_part = SerializedPart(**serialized_part_data)
     db.session.add(new_serialized_part)
     db.session.commit()
-    return jsonify({
-        "status": "success",
-        "message":"Successfully created serialzied part",
-        "part": serialized_part_schema.dump(new_serialized_part)
-    }), 201
+    
+    data = serialized_part_schema_no_ticket.dump(new_serialized_part)
+    data["message"] = "Successfully created serialized part"
+    data["status"] = "success"
+    return jsonify(data), 201
 
 # -------------------- Get All Serialized Parts --------------------
 # This route retrieves all serialized parts.
@@ -47,11 +53,11 @@ def get_serialized_parts():
 # -------------------- Get a Specific Serialized Part --------------------
 # This route retrieves a specific serialized part by their ID.
 # Cached for 30 seconds to reduce database lookups.
-@serialized_parts_bp.route("/<int:part_id>",methods=['GET'])
+@serialized_parts_bp.route("/<int:id>",methods=['GET'])
 @limiter.exempt
 # @cache.cached(timeout=30)
-def get_mechanic(part_id):
-    query = select(SerializedPart).where(SerializedPart.id == part_id)
+def get_mechanic(id):
+    query = select(SerializedPart).where(SerializedPart.id == id)
     serialized_part = db.session.execute(query).scalars().first()
     if serialized_part == None:
         return jsonify({"message":"Invalid serialized part description"}), 404
@@ -71,9 +77,9 @@ def search_serialized_parts():
 # -------------------- Update a Serialized Part --------------------
 # This route allows updating a serialized part by its ID.
 # Rate limited to 10 requests per hour.
-@serialized_parts_bp.route("/<int:serialized_part_id>", methods=['PUT'])
+@serialized_parts_bp.route("/<int:id>", methods=['PUT'])
 @limiter.limit("10/hour")
-def update_serialized_part(serialized_part_id):
+def update_serialized_part(id):
     
     try:
         serialized_part_data = serialized_part_schema.load(request.json)
@@ -81,42 +87,41 @@ def update_serialized_part(serialized_part_id):
     except ValidationError as err:
         return jsonify(err.messages), 400
     
-    part_description = db.session.get(PartDescription, serialized_part_data['desc_id'])
-    if not part_description:
-        return jsonify({"status": "error","message":"Part description not found"}), 404
-    
-    ticket = db.session.get(ServiceTicket, serialized_part_data['ticket_id'])
-    if not ticket:
-        return jsonify({"status": "error","message":"Service ticket not found"}), 404
-    
-    serialized_part = db.session.get(SerializedPart, serialized_part_id)
+    serialized_part = db.session.get(SerializedPart, id)
     if not serialized_part:
         return jsonify({"status": "error","message":"Serialized part not found"}), 404
     
-    # if serialized_part.ticket_id == serialized_part_data['ticket_id']:
-    #     return jsonify({"status": "error","message":"Ticket is already assigned to this serialized part"}), 400
-    # if serialized_part.desc_id == serialized_part_data['desc_id']:
-    #     return jsonify({"status": "error","message":"Part description is already assigned to this serialized part"}), 400
+    part_description = db.session.get(PartDescription, serialized_part_data['desc_id'])
+    if not part_description:
+        return jsonify({"status": "error","message":"Part description not found"}), 400
+    
+    ticket = db.session.get(ServiceTicket, serialized_part_data['ticket_id'])
+    if not ticket:
+        return jsonify({"status": "error","message":"Service ticket not found"}), 400
 
     for field, value in serialized_part_data.items():
         setattr(serialized_part, field, value)
     
     db.session.commit()
-    return jsonify({"status": "success","message":"Successfully updated serialized part ","serialized_part": serialized_part_schema.dump(serialized_part)}), 200
+    
+    data = serialized_part_schema.dump(serialized_part)
+    data["message"] = "Successfully updated serialized part"
+    data["status"] = "success"
+    return jsonify(data), 200
 
 # -------------------- Delete a Serialized Part --------------------
 # This route allows deleting a serialized part by its ID.
 # Rate limited to 5 requests per day.
-@serialized_parts_bp.route("/<int:serialized_part_id>", methods=['DELETE'])
+@serialized_parts_bp.route("/<int:id>", methods=['DELETE'])
 @limiter.limit("5/day")
-def delete_serialized_part(serialized_part_id):
-    serialized_part = db.session.get(SerializedPart, serialized_part_id)
+def delete_serialized_part(id):
+    serialized_part = db.session.get(SerializedPart, id)
     if not serialized_part:
         return jsonify({"status": "error","message":"Serialized part not found"}), 404
     
     db.session.delete(serialized_part)
     db.session.commit()
-    return jsonify({"status": "success","message": "Successfully deleted serialized part"}), 200
+    return jsonify({"status": "success","message": f"Successfully deleted serialized part {serialized_part_id}"}), 200
 
 # -------------------- Get All Stock --------------------
 # This route retrieves all stock of serialized parts.

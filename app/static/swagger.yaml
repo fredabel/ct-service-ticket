@@ -1,0 +1,1947 @@
+#app/static/swagger.yaml
+
+swagger: '2.0'
+info:
+  title: "Service Ticket Management System API"
+  description: "API to manage a Mechanic Service Ticket System"
+  version: "1.0.0"
+host: "127.0.0.1:5000"
+schemes:
+  - "http"
+consumes:
+  - "application/json"
+produces:
+  - "application/json"
+
+# =========================
+# Security Definitions
+# =========================
+securityDefinitions:
+  bearerAuth:
+    type: apiKey
+    name: Authorization
+    in: header
+
+# =========================
+# Paths
+# =========================
+
+paths: 
+  # --------- Mechanics Endpoints ---------
+  /mechanics/login: #Mechanics Login
+    post: 
+      tags:
+        - Mechanics
+      summary: Mechanic Login (generate token)
+      description: This endpoint allows a mechanic to log in.
+      parameters:
+        - in: body
+          name: body
+          description: Login credentials
+          required: true
+          schema:
+            $ref: '#/definitions/LoginPayload'
+      responses:
+        200:
+          description: Login successful
+          schema:
+            $ref: '#/definitions/LoginResponse'
+          examples:
+            application/json:
+              {
+                "status": "success",
+                "message": "Successfully logged in.",
+                "token": "eyJhbGciOiJIUz....."
+              }
+        401:
+          description: Invalid credentials
+          schema:
+            $ref: '#/definitions/MessageSchemaResponse'
+          examples:
+            application/json:
+              message: Invalid email or password.
+              status: error
+  
+  # --------- Mechanics CRUD ---------
+  /mechanics: #Mechanics CRUD
+    post: #Create
+      tags:
+        - Mechanics
+      summary: Create a new mechanic
+      description: This endpoint allows you to create a new mechanic.
+      parameters:
+        - in: body
+          name: body
+          description: Mechanic object that needs to be added
+          required: true
+          schema:
+            $ref: '#/definitions/MechanicPayload'
+      responses:
+        201:
+          description: Mechanic created successfully
+          schema:
+            $ref: '#/definitions/MechanicResponse'
+          examples:
+            application/json:
+              {
+                "id": 1,
+                "name": "John Doe",
+                "phone": "1234567890",
+                "email": "john@app.com",
+                "salary": 50000
+              }
+        400:
+          description: Email already exists
+          schema:
+            $ref: '#/definitions/MessageSchemaResponse'
+          examples:
+            application/json:
+              message: Email already exists.
+              stastus: error     
+    get: #Read
+      tags:
+        - Mechanics
+      summary: Get mechanics (with pagination)
+      description: This endpoint returns a list of mechanics with pagination. 
+        **You can use the `page` and `per_page` query parameters to control pagination.**
+      parameters:
+        - in: query
+          name: page
+          type: integer
+          description: Page number for pagination.
+        - in: query
+          name: per_page
+          type: integer
+          description: Number of mechanics per page.
+      responses:
+        200:
+          description: Return all mechanics
+          schema:
+            $ref: '#/definitions/MechanicListResponse'
+          examples:
+            application/json:
+              [
+                {
+                  "id": 1,
+                  "name": "John Doe",
+                  "phone": "1234567890",
+                  "email": "john@app.com",
+                  "salary": 50000
+                }
+              ]
+    put: #Update
+      tags:
+        - Mechanics
+      summary: Update a mechanic (Token required)
+      description: Update an existing mechanic's details.
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: body
+          name: body
+          description: Information used to update a mechanic
+          required: true
+          schema:
+            $ref: '#/definitions/MechanicPayload'
+      responses:
+        200:
+          description: Mechanic updated successfully
+          schema:
+            $ref: '#/definitions/MechanicResponse'
+          examples:
+            application/json:
+              {
+                "id": 1,
+                "name": "John Doe",
+                "phone": "1234567890",
+                "email": "john@app.com",
+                "salary": 50000,
+              }
+        400:
+          description: Email already exists
+          schema:
+            $ref: '#/definitions/MessageSchemaResponse'
+          examples:
+            application/json:
+              message: Email already exists.
+              status: error          
+    delete: #Delete
+      tags:
+        - Mechanics
+      summary: Delete a mechanic (Token required)
+      description: This endpoint allows you to delete a mechanic.
+      security:
+        - bearerAuth: []
+      responses:
+        200:
+          description: Mechanic deleted successfully
+          schema:
+            $ref: '#/definitions/MessageSchemaResponse'
+          examples:
+            application/json:
+              message: Successfully deleted mechanic 1.
+              status: success
+
+  # --------- Mechanics Get By ID ---------            
+  /mechanics/{id}:
+    get: #Read
+      tags:
+        - Mechanics
+      summary: Get mechanic by ID
+      description: Retrieve a mechanic's details by their unique ID.
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+            minimum: 1
+            example: 1
+          description: The ID of the mechanic to retrieve.
+      responses:
+        200:
+          description: Mechanic found
+          schema:
+            $ref: '#/definitions/MechanicResponse'
+          examples:
+            application/json:
+              {
+                "id": 1,
+                "name": "John Doe",
+                "phone": "1234567890",
+                "email": "john@app.com",
+                "salary": 50000,
+                "service_tickets": []
+              }
+        404:
+          description: Mechanic not found
+          schema:
+            $ref: '#/definitions/MessageSchemaResponse'
+          examples:
+            application/json:
+              message: Invalid mechanic
+              status: error
+              
+  # --------- Mechanics Popular ---------
+  /mechanics/popular: #Popular Mechanics
+    get: #Read
+      tags:
+        - Mechanics
+      summary: Get popular mechanics
+      description: This endpoint returns mechanics sorted by the number of service tickets they have handled, with the most active mechanics first.
+      responses:
+        200:
+          description: Return popular mechanics
+          schema:
+            $ref: '#/definitions/MechanicListResponse'
+          examples:
+            application/json:
+              [
+                {
+                  "id": 1,
+                  "name": "John Doe",
+                  "phone": "1234567890",
+                  "email": "john@app.com",
+                  "salary": 50000,
+                  "service_tickets": [],
+                  "ticket_counts": 1
+                }
+              ]
+
+  # --------- Mechanics Search ---------
+  /mechanics/search:
+    get: #Search
+      tags:
+        - Mechanics
+      summary: Search mechanics
+      description: This endpoint allows you to search for mechanics by name and/or email.
+        **At least one of `name` or `email` must be provided as a query parameter.**.
+      parameters:
+        - in: query
+          name: name
+          type: string
+          description: Search term to filter mechanics by name.
+        - in: query
+          name: email
+          type: string
+          description: Search term to filter mechanics by email.
+      responses:
+        200:
+          description: Return mechanics matching the search term
+          schema:
+            $ref: '#/definitions/MechanicListResponse'
+          examples:
+            application/json:
+              [
+                {
+                  "id": 1,
+                  "name": "John Doe",
+                  "phone": "1234567890",
+                  "email": "john@app.com",
+                  "salary": 50000,
+                  "service_tickets": [],
+                }
+              ]
+        400:
+          description: No query parameters provided
+          schema:
+            $ref: '#/definitions/MessageSchemaResponse'
+          examples:
+            application/json:
+              message: At least one search parameter (name or email) is required.
+              status: error
+        404:
+          description: No mechanics found
+          schema:
+            $ref: '#/definitions/MessageSchemaResponse'
+          examples:
+            application/json:
+              message: No mechanics found.
+              status: error
+
+  # --------- Customers Endpoints ---------         
+  /customers/login: #Customers Login
+    post:
+      tags:
+        - Customers
+      summary: Customer Login (generate token)
+      description: This endpoint allows a customer to log in.
+      parameters:
+        - in: body
+          name: body
+          description: Login credentials
+          required: true
+          schema:
+            $ref: '#/definitions/LoginPayload'
+      responses:
+        200:
+          description: Login successful
+          schema:
+            $ref: '#/definitions/LoginResponse'
+          examples:
+            application/json:
+              {
+                "status": "success",
+                "message": "Successfully logged in.",
+                "token": "eyJhbGciOiJIUz....."
+              }
+        401:
+          description: Invalid credentials
+          schema:
+            $ref: '#/definitions/MessageSchemaResponse'
+          examples:
+            application/json:
+              message: Invalid email or password.
+              status: error
+
+  # --------- Customer CRUD ---------
+  /customers: #Customer CRUD
+    post: #Create
+      tags:
+        - Customers
+      summary: Create a new customer
+      description: This endpoint allows you to create a new customer.
+      parameters:
+        - in: body
+          name: body
+          description: Customer object that needs to be added
+          required: true
+          schema:
+            $ref: '#/definitions/CustomerPayload'
+      responses:
+        201:
+          description: Customer created successfully
+          schema:
+            $ref: '#/definitions/CustomerResponse'
+          examples:
+            application/json:
+              {
+                "id": 1,
+                "name": "John Doe",
+                "phone": "0987654321",
+                "email": "jd@app.com"
+              }
+        400:
+          description: Email already exists
+          schema:
+            $ref: '#/definitions/MessageSchemaResponse'
+          examples:
+            application/json:
+              message: Email already exists.
+              status: error          
+    get: #Read
+      tags:
+        - Customers
+      summary: Get customers (with pagination)
+      description: This endpoint returns a list of customers with pagination. 
+        **You can use the `page` and `per_page` query parameters to control pagination.**
+      parameters:
+        - in: query
+          name: page
+          type: integer
+          description: Page number for pagination.
+        - in: query
+          name: per_page
+          type: integer
+          description: Number of customers per page.
+      responses:
+        200:
+          description: Return all customers
+          schema:
+            $ref: '#/definitions/CustomerListResponse'
+            examples:
+              application/json:
+                [
+                  {
+                    "id": 1,
+                    "name": "John Doe",
+                    "phone": "0987654321",
+                    "email": "jd@app.com",
+                  }
+                ]    
+    put: #Update
+      tags:
+        - Customers
+      summary: Update a customer (Token required)
+      description: Update an existing customer's details.
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: body
+          name: body
+          description: Information used to update a customer
+          required: true
+          schema:
+            $ref: '#/definitions/CustomerPayload'
+      responses:
+        200:
+          description: Customer updated successfully
+          schema:
+            $ref: '#/definitions/CustomerResponse'
+          examples:
+            application/json:
+              {
+                "id": 1,
+                "name": "John Doe",
+                "phone": "0987654321",
+                "email": "jd@app.com",
+              }
+        400:
+          description: Email already exists
+          schema:
+            $ref: '#/definitions/MessageSchemaResponse'
+          examples:
+            application/json:
+              message: Email already exists.
+              status: error
+    delete: #Delete
+      tags:
+        - Customers
+      summary: Delete a customer (Token required)
+      description: This endpoint allows you to delete a customer.
+      security:
+        - bearerAuth: []
+      responses:
+        200:
+          description: Customer deleted successfully
+          schema:
+            $ref: '#/definitions/MessageSchemaResponse'
+          examples:
+            application/json:
+              message: Successfully deleted customer 1.
+              status: success
+
+  # --------- Customers Get By ID ---------
+  /customers/{customer_id}:
+    get:
+      tags:
+        - Customers
+      summary: Get customer by ID
+      description: Retrieve a customer's details by their unique ID.
+      parameters:
+        - in: path
+          name: customer_id
+          required: true
+          schema:
+            type: integer
+            minimum: 1
+            example: 1
+          description: The ID of the customer to retrieve.
+      responses:
+        200:
+          description: Customer found
+          schema:
+            $ref: '#/definitions/CustomerResponse'
+          examples:
+            application/json:
+              {
+                "id": 1,
+                "name": "John Doe",
+                "phone": "0987654321",
+                "email": "jd@app.com",
+              }
+        404:
+          description: Customer not found
+          schema:
+            $ref: '#/definitions/MessageSchemaResponse'
+          examples:
+            application/json:
+              message: Customer not found!
+              status: error
+
+  # --------- Customers Search ---------              
+  /customers/search:
+    get:
+      tags:
+        - Customers
+      summary: Search customers
+      description: This endpoint allows you to search for customers by name and/or email.
+        **At least one of `name` or `email` must be provided as a query parameter.**.
+      parameters:
+        - in: query
+          name: name
+          type: string
+          description: Search term to filter customers by name.
+        - in: query
+          name: email
+          type: string
+          description: Search term to filter customers by email.
+      responses:
+        200:
+          description: Return customers matching the search term
+          schema:
+            $ref: '#/definitions/CustomerListResponse'
+            examples:
+              application/json:
+                [
+                  {
+                    "id": 1,
+                    "name": "John Doe",
+                    "phone": "0987654321",
+                    "email": "jd@app.com",
+                  }
+                ]
+        400:
+          description: No query parameters provided
+          schema:
+            $ref: '#/definitions/MessageSchemaResponse'
+          examples:
+            application/json:
+              message: At least one search parameter (name or email) is required.
+              status: error
+        404:
+          description: No customers found
+          schema:
+            $ref: '#/definitions/MessageSchemaResponse'
+          examples:
+            application/json:
+              message: No customers found.
+              status: error
+
+  # --------- Customers Ticket ---------        
+  /customers/my-tickets:
+    get:
+      tags:
+        - Customers
+      summary: Get my tickets (Token required)
+      description: This endpoint allows you to get all tickets of the customer.
+      security:
+        - bearerAuth: []
+      responses:
+        200:
+          description: Return all tickets of the customer
+          schema:
+            $ref: '#/definitions/CustomerTicketsResponse'
+          examples:
+            application/json:
+              {
+                "customer": {
+                  "email": "jd@app.com",
+                  "id": 1,
+                  "name": "John Doe",
+                  "phone": "123-456-789"
+                },
+                "id": 1,
+                "service_tickets": []
+              }
+        401:
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/MessageSchemaResponse'
+          examples:
+            application/json:
+              message: Token is missing.
+
+  # --------- Parts Description Endpoints ---------         
+  /part_descriptions: #Parts Description CRUD
+    post: #Create
+      tags:
+        - Part Descriptions
+      summary: Create a new part description
+      description: This endpoint allows you to create a new part description.
+      parameters:
+        - in: body
+          name: body
+          description: Part description object that needs to be added
+          required: true
+          schema:
+            $ref: '#/definitions/PartDescriptionPayload'
+      responses:
+        201:
+          description: Part description created successfully
+          schema:
+            $ref: '#/definitions/PartDescriptionMessageResponse'
+          examples:
+            application/json:
+              {
+                "status": "success",
+                "message": "Successfully created part description",
+                "part_description": {
+                  "id": 1,
+                  "name": "Brake Pad",
+                  "brand": "Brand A",
+                  "price": 100.00
+                }
+              }
+    get: #Read
+      tags:
+        - Part Descriptions
+      summary: Get part descriptions (with pagination)
+      description: This endpoint returns a list of part descriptions with pagination. 
+        **You can use the `page` and `per_page` query parameters to control pagination.**
+      parameters:
+        - in: query
+          name: page
+          type: integer
+          description: Page number for pagination.
+        - in: query
+          name: per_page
+          type: integer
+          description: Number of part descriptions per page.
+      responses:
+        200:
+          description: Return all part descriptions
+          schema:
+            $ref: '#/definitions/PartDescriptionListResponse'
+          examples:
+            application/json:
+              [
+                {
+                  "id": 1,
+                  "name": "Brake Pad",
+                  "brand": "Brand A",
+                  "price": 100.00
+                }
+              ]
+  
+  # --------- Parts Description Get By ID ---------      
+  /part_descriptions/{id}:
+    get: #Read
+      tags:
+        - Part Descriptions
+      summary: Get part description by ID
+      description: Retrieve a part description's details by its unique ID.
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+            minimum: 1
+            example: 1
+          description: The ID of the item to retrieve.
+      responses:
+        200:
+          description: Part description found
+          schema:
+            $ref: '#/definitions/PartDescriptionResponse'
+          examples:
+            application/json:
+              {
+                "id": 1,
+                "name": "Brake Pad",
+                "brand": "Brand A",
+                "price": 100.00
+              }
+        404:
+          description: Part description not found
+          schema:
+            $ref: '#/definitions/MessageSchemaResponse'
+          examples:
+            application/json:
+              message: Part description not found.
+              status: error        
+    put: #Update
+      tags:
+        - Part Descriptions
+      summary: Update a part description
+      description: Update an existing part description's details.
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+            minimum: 1
+            example: 1
+          description: The ID of the item to retrieve.
+        - in: body
+          name: body
+          description: Information used to update a part description
+          required: true
+          schema:
+            $ref: '#/definitions/PartDescriptionPayload'
+      responses:
+        200:
+          description: Part description updated successfully
+          schema:
+            $ref: '#/definitions/PartDescriptionMessageResponse'
+          examples:
+            application/json:
+              {
+                "status": "success",
+                "message": "Successfully updated part description",
+                "part_description": {
+                  "id": 1,
+                  "name": "Brake Pad",
+                  "brand": "Brand A",
+                  "price": 100.00
+                }
+              }
+        404:
+          description: Invalid part description ID
+          schema:
+            $ref: '#/definitions/MessageSchemaResponse'
+          examples:
+            application/json:
+              message: Part description not found.
+              status: error
+    delete: #Delete
+      tags:
+        - Part Descriptions
+      summary: Delete a part description
+      description: This endpoint allows you to delete a part description.
+      parameters:
+        - in: path
+          name: part_description_id
+          required: true
+          schema:
+            type: integer
+            minimum: 1
+          description: The ID of the item to retrieve.
+      responses:
+        200:
+          description: Part description deleted successfully
+          schema:
+            $ref: '#/definitions/MessageSchemaResponse'
+          examples:
+            application/json:
+              message: Successfully deleted part description 1.
+              status: success
+        404:
+          description: Invalid part description ID
+          schema:
+            $ref: '#/definitions/MessageSchemaResponse'
+          examples:
+            application/json:
+              message: Part description not found.
+              status: error
+  
+  # --------- Parts Description Search ---------     
+  /part_descriptions/search:
+    get:
+      tags:
+        - Part Descriptions
+      summary: Search part descriptions
+      description: This endpoint allows you to search for part descriptions by name and/or brand.
+        **At least one of `name` or `brand` must be provided as a query parameter.**.
+      parameters:
+        - in: query
+          name: name
+          type: string
+          description: Search term to filter part descriptions by name.
+        - in: query
+          name: brand
+          type: string
+          description: Search term to filter part descriptions by brand.
+      responses:
+        200:
+          description: Return part descriptions matching the search term
+          schema:
+            $ref: '#/definitions/PartDescriptionListResponse'
+          examples:
+            application/json:
+              [
+                {
+                  "id": 1,
+                  "name": "Brake Pad",
+                  "brand": "Brand A",
+                  "price": 100.00
+                }
+              ]
+        400:
+          description: No query parameters provided
+          schema:
+            $ref: '#/definitions/MessageSchemaResponse'
+          examples:
+            application/json:
+              message: At least one search parameter (name or brand) is required.
+              status: error
+        404:
+          description: No part descriptions found
+          schema:
+            $ref: '#/definitions/MessageSchemaResponse'
+          examples:
+            application/json:
+              message: No part descriptions found.
+              status: error
+
+  # --------- Serialized Parts Endpoints ---------
+  /serialized_parts: #Serialized Parts CRUD
+    post: #Create
+      tags:
+        - Serialized Parts
+      summary: Create a new serialized part
+      description: This endpoint allows you to create a new serialized part.
+      parameters:
+        - in: body
+          name: body
+          description: Serialized part object that needs to be added
+          required: true
+          schema:
+            type: object
+            properties:
+              desc_id:  
+                type: integer
+            example:
+              desc_id: 1
+      responses:
+        201:
+          description: Serialized part created successfully
+          schema:
+            $ref: '#/definitions/SerializedPartMessageResponse'
+          examples:
+            application/json:
+              {
+                "status": "success",
+                "message": "Successfully created serialized part",
+                "id": 1,
+                "desc_id": 1,
+                "ticket_id": null,
+                "description": {
+                  "id": 1,
+                  "name": "Brake Pad",
+                  "brand": "Brand A",
+                  "price": 100.00
+                } 
+              }
+        404:
+          description: Part description not found
+          schema:
+            $ref: '#/definitions/MessageSchemaResponse'
+          examples:
+            application/json:
+              message: Part description not found.
+              status: error       
+    get: #Read
+      tags:
+        - Serialized Parts
+      summary: Get serialized parts (with pagination)
+      description: This endpoint returns a list of serialized parts with pagination. 
+        **You can use the `page` and `per_page` query parameters to control pagination.**
+      parameters:
+        - in: query
+          name: page
+          type: integer
+          description: Page number for pagination.
+        - in: query
+          name: per_page
+          type: integer
+          description: Number of serialized parts per page.
+      responses:
+        200:
+          description: Return all serialized parts
+          schema:
+            $ref: '#/definitions/SerializedPartListResponse'
+          examples:
+            application/json:    
+              [
+                { 
+                  "id": 1,
+                  "desc_id": 1,
+                  "ticket_id": null,
+                  "description": {
+                    "id": 1,
+                    "name": "Brake Pad",
+                    "brand": "Brand A",
+                    "price": 100.00
+                  }
+                }
+              ]
+
+  # --------- Serialized Parts Get By ID ---------      
+  /serialized_parts/{id}:
+    get: #Read
+      tags:
+        - Serialized Parts
+      summary: Get serialized part by ID
+      description: Retrieve a serialized part's details by its unique ID.
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+            minimum: 1
+            example: 1
+          description: The ID of the item to retrieve.
+      responses:
+        200:
+          description: Serialized part found
+          schema:
+            $ref: '#/definitions/SerializedPartResponse'
+          examples:
+            application/json:
+              { 
+                "id": 1,
+                "desc_id": 1,
+                "ticket_id": null,
+                "description": {
+                  "id": 1,
+                  "name": "Brake Pad",
+                  "brand": "Brand A",
+                  "price": 100.00
+                }
+              }
+        404:
+          description: Serialized part not found
+          schema:
+            $ref: '#/definitions/MessageSchemaResponse'
+          examples:
+            application/json:
+              message: Serialized part not found.
+              status: error
+              
+    put: #Update
+      tags:
+        - Serialized Parts
+      summary: Update a serialized part
+      description: Update an existing serialized part's details.
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+            minimum: 1
+            example: 1
+          description: The ID of the serialized part to update.
+        - in: body
+          name: body
+          description: Information used to update a serialized part
+          required: true
+          schema:
+            type: object
+            properties:
+              desc_id:
+                type: integer
+              ticket_id:
+                type: integer
+            example:
+              desc_id: 1
+              ticket_id: 1
+      responses:
+        200:
+          description: Serialized part updated successfully
+          schema:
+            $ref: '#/definitions/SerializedPartMessageResponse'
+          examples:
+            application/json:
+              # {
+              #   "status": "success",
+              #   "message": "Successfully updated serialized part",
+              #   "id": 1,
+              #   "desc_id": 1,
+              #   "ticket_id": 1,
+              #   "description": {
+              #     "id": 1,
+              #     "name": "Brake Pad",
+              #     "brand": "Brand A",
+              #     "price": 100.00
+              #   },
+              #   "ticket": {
+              #     "id": 1,
+              #     "service_date": "2025-03-20",
+              #     "service_desc": "This is a description",
+              #     "ticket_items": [],
+              #     "vin": "CMD12456",
+              #     "customer": {
+              #       "email": "jd@app.com",
+              #       "id": 1,
+              #       "name": "John Doe",
+              #       "phone": "123-456-789"
+              #     },
+              #     "mechanics": [
+              #       {
+              #         "email": "mike@app.com",
+              #         "id": 1,
+              #         "name": "Mike Store",
+              #         "phone": "123-456-789",
+              #         "salary": "50000.00"
+              #       }
+              #     ]
+              #   }
+              # }
+        400:
+          description:  ticket_id or part_id not found
+          schema:
+            $ref: '#/definitions/MessageSchemaResponse'
+          examples:
+            application/json:
+              message: ticket_id or part_id not found.
+              status: error   
+        404:
+          description: Invalid serialized part ID
+          schema:
+            $ref: '#/definitions/MessageSchemaResponse'
+          examples:
+            application/json:
+              message: Serialized part not found.
+              status: error       
+    
+    delete: #Delete
+      tags:
+        - Serialized Parts
+      summary: Delete a serialized part
+      description: This endpoint allows you to delete a serialized part.
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+            minimum: 1
+          description: The ID of the item to retrieve.
+      responses:
+        200:
+          description: Serialized part deleted successfully
+          schema:
+            $ref: '#/definitions/MessageSchemaResponse'
+          examples:
+            application/json:
+              status: success
+              message: Successfully deleted serialized part 1.  
+        404:
+          description: Serialized part not found
+          schema:
+            type: object
+            properties:
+              $ref: '#/definitions/MessageSchemaResponse'
+          examples:
+            application/json:
+              message: Serialized part not found.
+              status: error
+              
+  # --------- Serialized Parts Inventory ---------
+  /serialized_parts/inventory:
+    get:
+      tags:
+        - Serialized Parts
+      summary: Get serialized parts inventory
+      description: This endpoint returns a list of serialized parts in the inventory.
+      responses:
+        200:
+          description: Return all serialized parts in the inventory
+          schema:
+            $ref: '#/definitions/SerializedPartListInventoryResponse'
+          examples:
+            application/json:
+              [
+                {
+                  "part_description": {
+                    "id": 1,
+                    "name": "Brake Pad",
+                    "brand": "Brand A",
+                    "price": 100.00
+                  },
+                  "stock": 5,
+                }
+              ]
+  
+  /serialized_parts/inventory/{part_id}:
+    get:
+      tags:
+        - Serialized Parts
+      summary: Get serialized part inventory by part description ID
+      description: Retrieve a serialized part's inventory details by part description ID.
+      parameters:
+        - in: path
+          name: part_id
+          required: true
+          schema:
+            type: integer
+            minimum: 1
+            example: 1
+          description: The ID of the item to retrieve.
+      responses:
+        200:
+          description: Part description found in inventory
+          schema:
+            $ref: '#/definitions/SerializedPartInventoryResponse'
+          examples:
+            application/json:
+              {
+                "part_description": {
+                  "id": 1,
+                  "name": "Brake Pad",
+                  "brand": "Brand A",
+                  "price": 100.00
+                },
+                "stock": 5,
+              }
+        404:
+          description: Part description not found
+          schema:
+            $ref: '#/definitions/MessageSchemaResponse'
+          examples:
+            application/json:
+              message: Part description not found.
+              status: error
+              
+  #---------- Service Tickets Endpoints ---------
+  /service-tickets: #Service Tickets CRUD
+    post: #Create
+      tags:
+        - Service Tickets
+      summary: Create a new service ticket
+      description: This endpoint allows you to create a new service ticket.
+      parameters:
+        - in: body
+          name: body
+          description: Service ticket object that needs to be added
+          required: true
+          schema:
+            $ref: '#/definitions/ServiceTicketPayload'
+      responses:
+        201:
+          description: Service ticket created successfully
+          schema:
+            $ref: '#/definitions/ServiceTicketResponse'
+          examples:
+            application/json:
+              {
+                "id": 2,
+                "customer_id": 1,
+                "customer": {
+                  "email": "jd@app.com",
+                  "id": 1,
+                  "name": "John Doe",
+                  "phone": "123-456-789"
+                },
+                "mechanics": [
+                    {
+                        "email": "mike@app.com",
+                        "id": 1,
+                        "name": "Mike Store",
+                        "phone": "123-456-789",
+                        "salary": "50000.00"
+                    }
+                ],
+                "service_date": "2025-03-20",
+                "service_desc": "This is a description",
+                "vin": "CMD12456",
+                "ticket_items": []
+              }
+        400:
+          description: Invalid customer ID or mechanic ID
+          schema:
+            $ref: '#/definitions/MessageSchemaResponse'
+          examples:
+            application/json:
+              invalid_customer_id:
+                message: Invalid customer ID.
+                status: error
+              invalid_mechanic_id:
+                message: Invalid mechanic ID.
+                status: error
+    get: #Read
+      tags:
+        - Service Tickets
+      summary: Get service tickets (with pagination)
+      description: This endpoint returns a list of service tickets with pagination. 
+        **You can use the `page` and `per_page` query parameters to control pagination.**
+      parameters:
+        - in: query
+          name: page
+          type: integer
+          description: Page number for pagination.
+        - in: query
+          name: per_page
+          type: integer
+          description: Number of service tickets per page.
+      responses:
+        200:
+          description: Return all service tickets
+          schema:
+            $ref: '#/definitions/ServiceTicketsListResponse'
+          examples:
+            # application/json:
+            #   [
+            #     {
+            #       "customer": {
+            #         "email": "jd@app.com",
+            #         "id": 1,
+            #         "name": "John Doe",
+            #         "phone": "123-456-789"
+            #       },
+            #       "id": 1,
+            #       "mechanics": [
+            #           {
+            #               "email": "mike@app.com",
+            #               "id": 1,
+            #               "name": "Mike Store",
+            #               "phone": "123-456-789",
+            #               "salary": "50000.00"
+            #           }
+            #       ],
+            #       "service_date": "2025-03-20",
+            #       "service_desc": "This is a description",
+            #       "ticket_items": [],
+            #       "vin": "CMD12456"
+            #     }
+            #   ]
+        
+  #---------- Service Tickets Add Single Mechanic ---------
+  /service-tickets/{ticket_id}/add-mechanic/{mechanic_id}:
+    put: #Update
+      tags:
+        - Service Tickets
+      summary: Add a mechanic to a service ticket
+      description: This endpoint allows you to add a mechanic to an existing service ticket.
+      parameters:
+        - in: path
+          name: ticket_id
+          required: true
+          schema:
+            type: integer
+            minimum: 1
+          description: The ID of the service ticket to update.
+        - in: path
+          name: mechanic_id
+          required: true
+          schema:
+            type: integer
+            minimum: 1
+          description: The ID of the mechanic to add.
+      responses:
+        200:
+          description: Mechanic added successfully
+          schema:
+            $ref: '#/definitions/ServiceTicketUpdateResponse'
+          examples:
+            application/json:
+              {
+                "message": "Mechanic added successfully.",
+                "status": "success",
+                "service_ticket":{
+                  "customer": {
+                    "email": "jd@app.com",
+                    "id": 1,
+                    "name": "John Doe",
+                    "phone": "123-456-789"
+                  },
+                  "id": 2,
+                  "mechanics": [
+                      {
+                          "email": "mike@app.com",
+                          "id": 1,
+                          "name": "Mike Store",
+                          "phone": "123-456-789",
+                          "salary": "50000.00"
+                      }
+                  ],
+                  "service_date": "2025-03-20",
+                  "service_desc": "This is a description",
+                  "ticket_items": [],
+                  "vin": "CMD12456"
+                }
+              }
+        400:
+          description: Mechanic already assigned to the ticket
+          schema:
+            $ref: '#/definitions/MessageSchemaResponse'
+          examples:
+            application/json:
+              message: Mechanic already assigned to the ticket.,
+              status": error
+        404:
+          description: Service ticket or mechanic not found
+          schema:
+            $ref: '#/definitions/MessageSchemaResponse'
+          examples:
+            application/json:
+              message: Service ticket or mechanic not found.,
+              status": error
+
+  #---------- Service Tickets Remove Single Mechanic ---------            
+  /service-tickets/{ticket_id}/remove-mechanic/{mechanic_id}:
+    put: #Update
+      tags:
+        - Service Tickets
+      summary: Remove a mechanic from a service ticket
+      description: This endpoint allows you to remove a mechanic from an existing service ticket.
+      parameters:
+        - in: path
+          name: ticket_id
+          required: true
+          schema:
+            type: integer
+            minimum: 1
+          description: The ID of the service ticket to update.
+        - in: path
+          name: mechanic_id
+          required: true
+          schema:
+            type: integer
+            minimum: 1
+          description: The ID of the mechanic to remove.
+      responses:
+        200:
+          description: Mechanic removed successfully
+          schema:
+            $ref: '#/definitions/ServiceTicketUpdateResponse'
+          examples:
+            application/json:
+              {
+                "message": "Mechanic removed successfully.",
+                "status": "success",
+                "service_ticket":{
+                  "customer": {
+                    "email": "jd@app.com",
+                    "id": 1,
+                    "name": "John Doe",
+                    "phone": "123-456-789"
+                  },
+                  "id": 2,
+                  "mechanics": [
+                      {
+                          "email": "mike@app.com",
+                          "id": 1,
+                          "name": "Mike Store",
+                          "phone": "123-456-789",
+                          "salary": "50000.00"
+                      }
+                  ],
+                  "service_date": "2025-03-20",
+                  "service_desc": "This is a description",
+                  "ticket_items": [],
+                  "vin": "CMD12456"
+                }
+              }
+        400:
+          description: Mechanic not included on this ticket
+          schema:
+            $ref: '#/definitions/MessageSchemaResponse'
+          examples:
+            application/json:
+              message: Mechanic not included on this ticket.
+              status: error   
+        404:
+          description: Service ticket or mechanic not found
+          schema:
+            $ref: '#/definitions/MessageSchemaResponse'
+          examples:
+            application/json:
+              message: Service ticket or mechanic not found.
+              status: error
+
+  #---------- Service Tickets Add Serialized Part ID ---------             
+  /service-tickets/{ticket_id}/add-part/{part_id}:
+    put:
+      tags:
+        - Service Tickets
+      summary: Add a part to a service ticket
+      description: This endpoint allows you to add a part to an existing service ticket.
+      parameters:
+        - in: path
+          name: ticket_id
+          required: true
+          schema:
+            type: integer
+            minimum: 1
+          description: The ID of the service ticket to update.
+        - in: path
+          name: part_id
+          required: true
+          schema:
+            type: integer
+            minimum: 1
+          description: The ID of the part to add.
+      responses:
+        200:
+          description: Serialized serialized part added successfully
+          schema:
+            $ref: '#/definitions/ServiceTicketUpdateResponse'
+          examples:
+            application/json:
+              {
+                "message": "Serialized part 1 successfully added to ticket.",
+                "status": "success",
+                "service_ticket":{
+                  "customer": {
+                    "email": "jd@app.com",
+                    "id": 1,
+                    "name": "John Doe",
+                    "phone": "123-456-789"
+                  },
+                  "id": 2,
+                  "mechanics": [
+                      {
+                          "email": "mike@app.com",
+                          "id": 1,
+                          "name": "Mike Store",
+                          "phone": "123-456-789",
+                          "salary": "50000.00"
+                      }
+                  ],
+                  "service_date": "2025-03-20",
+                  "service_desc": "This is a description",
+                  "ticket_items": [{
+                      "desc_id": 1,
+                      "ticket_id": 2,
+                      "description": {
+                          "id": 1,
+                          "name": "Brake Pad",
+                          "brand": "Brand A",
+                          "price": 100.00
+                      }
+                  }],
+                  "vin": "CMD12456"
+                }
+              }
+        400:
+          description: Serialized part already assigned to a ticket
+          schema:
+            $ref: '#/definitions/MessageSchemaResponse'
+          examples:
+            application/json:
+              message: Serialized part already assigned to a ticket
+              status: error
+        404:
+          description: Service ticket or serialized part not found
+          schema:
+            $ref: '#/definitions/MessageSchemaResponse'
+          examples:
+            application/json:
+              message: Service ticket or serialized part not found.
+              status: error
+
+  #---------- Service Tickets Remove Serialized Part ID ---------
+  /service-tickets/{ticket_id}/remove-part/{part_id}:
+    put: #Update
+      tags:
+        - Service Tickets
+      summary: Remove a part from a service ticket
+      description: This endpoint allows you to remove a part from an existing service ticket.
+      parameters:
+        - in: path
+          name: ticket_id
+          required: true
+          schema:
+            type: integer
+            minimum: 1
+          description: The ID of the service ticket to update.
+        - in: path
+          name: part_id
+          required: true
+          schema:
+            type: integer
+            minimum: 1
+          description: The ID of the part to remove.
+      responses:
+        200:
+          description: Serialized part removed successfully
+          schema:
+            $ref: '#/definitions/ServiceTicketUpdateResponse'
+          examples:
+            application/json:
+              {
+                "message": "Part 1 successfully removed to ticket.",
+                "status": "success",
+                "service_ticket":{
+                  "customer": {
+                    "email": "jd@app.com",
+                    "id": 1,
+                    "name": "John Doe",
+                    "phone": "123-456-789"
+                  },
+                  "id": 2,
+                  "mechanics": [
+                      {
+                          "email": "mike@app.com",
+                          "id": 1,
+                          "name": "Mike Store",
+                          "phone": "123-456-789",
+                          "salary": "50000.00"
+                      }
+                  ],
+                  "service_date": "2025-03-20",
+                  "service_desc": "This is a description",
+                  "ticket_items": [],
+                  "vin": "CMD12456"
+                }
+              }
+        400:
+          description: Serialized part not included on this ticket
+          schema:
+            $ref: '#/definitions/MessageSchemaResponse'
+          examples:
+            application/json:
+              message: Serialized part not included on this ticket.
+              status: error
+        404:
+          description: Service ticket or part not found
+          schema:
+            $ref: '#/definitions/MessageSchemaResponse'
+          examples:
+            application/json:
+              message: Service ticket or part not found.
+              status: error
+              
+  #---------- Service Tickets Add/Remove Multiple Mechanics ---------
+  /service-tickets/{id}/edit-mechanics:
+    put: #Update
+      tags:
+        - Service Tickets
+      summary: Edit service ticket by ID
+      description: Edit a service ticket's details by its unique ID.
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+            minimum: 1
+          description: The ID of the item to update.
+        - in: body
+          name: body
+          description: Information used to update a service ticket
+          required: true
+          schema:
+            type: object
+            properties:
+              add_mechanic_ids:
+                type: array
+                items:
+                  type: integer
+              remove_mechanic_ids:
+                type: array
+                items:
+                  type: integer
+      responses:
+        200:
+          description: Update service ticket successfully
+          schema:
+            $ref: '#/definitions/ServiceTicketUpdateResponse'
+          examples:
+            application/json:
+              # {
+              #   "message": "Part 1 successfully removed to ticket.",
+              #   "status": "success",
+              #   "service_ticket":{
+              #     "customer": {
+              #       "email": "jd@app.com",
+              #       "id": 1,
+              #       "name": "John Doe",
+              #       "phone": "123-456-789"
+              #     },
+              #     "id": 2,
+              #     "mechanics": [
+              #         {
+              #             "email": "mike@app.com",
+              #             "id": 1,
+              #             "name": "Mike Store",
+              #             "phone": "123-456-789",
+              #             "salary": "50000.00"
+              #         }
+              #     ],
+              #     "service_date": "2025-03-20",
+              #     "service_desc": "This is a description",
+              #     "ticket_items": [],
+              #     "vin": "CMD12456"
+              #   }
+              # }
+        400:
+          description: Mechanic assigned/unassigned in this ticket or mechanic does not exist
+          schema:
+            $ref: '#/definitions/MessageSchemaResponse'
+          examples:
+            application/json:
+              you_add_the_assigned_mechanic:
+                  message: "Mechanic already assigned to this ticket."
+                  status: "error"
+              you_remove_the_unassigned_mechanic:
+                  message: "Mechanic not assigned to this ticket."
+                  status: "error"
+              mechanic_does_not_exist:
+                  message: "Mechanic does not exist."
+                  status: "error"
+        404:
+          description: Service ticket not found
+          schema:
+            $ref: '#/definitions/MessageSchemaResponse'
+          examples:
+            application/json:
+                message: Service ticket not found.
+                status: error
+
+  #---------- Service Tickets Add Parts to Cart ---------       
+  /service-tickets/{ticket_id}/add-to-cart/{part_id}:
+    put:
+      tags:
+        - Service Tickets
+      summary: Add parts to a service ticket
+      description: This endpoint allows you to add parts to an existing service ticket.
+      parameters:
+        - in: path
+          name: ticket_id
+          required: true
+          schema:
+            type: integer
+            minimum: 1
+          description: The ID of the service ticket to update.
+        - in: path
+          name: part_id
+          required: true
+          schema:
+            type: integer
+            minimum: 1
+          description: The ID of the part to add.
+        - in: body
+          name: body
+          description: Quantity of parts to add (default is 1)
+          required: false
+          schema:
+            type: object
+            properties:
+              quantity:
+                type: integer
+                minimum: 1
+                default: 1
+      responses:
+        200:
+          description: Serialized parts added successfully
+          schema:
+            $ref: '#/definitions/ServiceTicketUpdateResponse'
+          examples:
+            application/json:
+        400:
+          description: Quantity is more than the available stock
+          schema:
+            $ref: '#/definitions/MessageSchemaResponse'
+          examples:
+            application/json:
+              message: Only 5 stock(s) available for this part.
+              status: error
+        404:
+          description: Invalid ticket_id or part_id
+          schema:
+            $ref: '#/definitions/MessageSchemaResponse'
+          examples:
+            application/json:
+              message: Invalid ticket_id or part_id.
+              status: error
+
+  #---------- Service Tickets Delete ---------         
+  /service-tickets/{id}:
+    delete: #Delete
+      tags:
+        - Service Tickets
+      summary: Delete a service ticket
+      description: This endpoint allows you to delete a service ticket.
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+            minimum: 1
+          description: The ID of the item to retrieve.
+      responses:
+        200:
+          description: Service ticket deleted successfully
+          schema:
+            $ref: '#/definitions/MessageSchemaResponse'
+          examples:
+            application/json:
+              status: success
+              message: Successfully deleted service ticket 1  
+        404:
+          description: Service ticket not found
+          schema:
+            $ref: '#/definitions/MessageSchemaResponse'
+          examples:
+            application/json:
+              message: Service ticket not found.
+              status: error
+
+  
+              
+              
+# =========================
+# Definitions (Schemas)
+# =========================          
+definitions: 
+  # --------- Auth Schemas ---------
+  LoginPayload:
+    type: object
+    properties:
+      email:
+        type: string
+      password:
+        type: string
+  LoginResponse:
+    type: object
+    properties:
+      status:
+        type: string
+      message:
+        type: string
+      token:
+        type: string
+  
+  # --------- Message Schemas ---------
+  MessageSchemaResponse:
+    type: object
+    properties:
+      message:
+        type: string
+      status:
+        type: string
+
+  # --------- Mechanic Schemas ---------
+  MechanicPayload:
+    type: object
+    properties:
+      name:
+        type: string
+      phone:
+        type: string
+      email:
+        type: string
+      password:
+        type: string
+      salary:
+        type: integer
+  
+  MechanicResponse:
+    type: object
+    properties:
+      id:
+        type: integer
+      name:
+        type: string
+      email:
+        type: string
+      salary:
+        type: integer
+      service_tickets:
+        type: array     
+  
+  MechanicListResponse:
+    type: array
+    items:
+      $ref: '#/definitions/MechanicResponse'
+  
+  #-------------- Customer Schemas-------
+  CustomerPayload:
+    type: object
+    properties:
+      name:
+        type: string
+      phone:
+        type: string
+      email:
+        type: string
+      password:
+        type: string
+  
+  CustomerResponse:
+    type: object
+    properties:
+      id:
+        type: integer
+      name:
+        type: string
+      phone:
+        type: string
+      email:
+        type: string
+  
+  CustomerListResponse:
+    type: array
+    items:
+      $ref: '#/definitions/CustomerResponse'
+  
+  CustomerTicketsResponse:
+    type: object
+    properties:
+      customer:
+        $ref: '#/definitions/CustomerResponse'
+      id:
+        type: integer
+      service_tickets:
+        type: array
+
+#--------------- Part Description Schemas-------
+  PartDescriptionPayload:
+    type: object
+    properties:
+      name:
+        type: string
+      brand:
+        type: string
+      price:
+        type: integer
+  
+  PartDescriptionResponse:
+    type: object
+    properties:
+      id:
+        type: integer
+      name:
+        type: string
+      brand:
+        type: string
+      price:
+        type: integer
+  
+  PartDescriptionListResponse:
+    type: array
+    items:
+      $ref: '#/definitions/PartDescriptionResponse'
+  
+  PartDescriptionMessageResponse:
+    type: object
+    properties:
+      status:
+        type: string
+      message:
+        type: string
+      part_description:
+        $ref: '#/definitions/PartDescriptionResponse'
+
+#--------------- Serialized Part Schemas-------
+  SerializedPartMessageResponse:
+    type: object
+    properties:
+      status:
+        type: string
+      message:
+        type: string
+      id:
+        type: integer
+      desc_id:
+        type: integer
+      ticket_id:
+        type: integer
+      description:
+        $ref: '#/definitions/PartDescriptionResponse'
+      ticket:
+        $ref: '#/definitions/ServiceTicketResponse'
+
+  SerializedPartResponse:
+    type: object
+    properties:
+      id:
+        type: integer
+      desc_id:
+        type: integer
+      ticket_id:
+        type: integer
+      description:
+        $ref: '#/definitions/PartDescriptionResponse'
+
+  SerializedPartListResponse:
+    type: array
+    items:
+      type: object
+      properties:
+        id:
+          type: integer
+        desc_id:
+          type: integer
+        ticket_id:
+          type: integer
+        description:
+          $ref: '#/definitions/PartDescriptionResponse'
+  
+  SerializedPartInventoryResponse:
+    type: object
+    properties:
+      part_description:
+        $ref: '#/definitions/PartDescriptionResponse'
+      stock:
+        type: integer
+  
+  SerializedPartListInventoryResponse:
+    type: array
+    items:
+      $ref: '#/definitions/SerializedPartInventoryResponse'
+
+#--------------- Service Ticket Schemas-------
+  ServiceTicketPayload:
+    type: object
+    properties:
+      customer_id:
+        type: integer
+      mechanic_ids:
+        type: array
+        items:
+          type: integer
+      service_date:
+        type: string
+      service_desc:
+        type: string
+      vin:
+        type: string
+  
+  ServiceTicketResponse:
+    type: object
+    properties:
+      id:
+        type: integer
+      customer_id:
+        type: integer
+      customer:
+       $ref: '#/definitions/CustomerResponse'
+      mechanics:
+        type: array
+        items:
+          $ref: '#/definitions/MechanicResponse'
+      ticket_items:
+        type: array
+        items:
+          $ref: '#/definitions/SerializedPartResponse'
+      service_date:
+        type: string
+      service_desc:
+        type: string
+      vin:
+        type: string
+
+  ServiceTicketsListResponse:
+    type: array
+    items:
+      $ref: '#/definitions/ServiceTicketResponse'
+  
+  ServiceTicketUpdateResponse:
+    type: object
+    properties:
+      message:
+        type: string
+      status:
+        type: string
+      service_ticket:
+        $ref: '#/definitions/ServiceTicketResponse'
+  

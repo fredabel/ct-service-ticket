@@ -7,8 +7,10 @@
 │	│				├──__init__.py  - Initializt User Blueprint
 │	│				├── routes.py  - Create User Controllers/routes
 │	│				└── userSchemas.py
-    ├── /utils 
+|   ├── /utils 
 │	|		└── util.py - File for token functions
+|   ├── /static
+│   │       └── swagger.yaml - 
 │   └── models.py
 │			
 ├── app.py

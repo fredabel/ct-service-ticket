@@ -3,7 +3,7 @@ from app.extensions import ma
 from marshmallow import fields
 
 class MechanicSchema(ma.SQLAlchemyAutoSchema):
-    service_tickets = fields.Nested("ServiceTicketSchema", many=True, exclude=["mechanics"]) 
+    service_tickets = fields.Nested("ServiceTicketSchema", many=True, exclude=["mechanics","ticket_items","customer"]) 
     password = fields.String(load_only=True)
     class Meta:
         model = Mechanic

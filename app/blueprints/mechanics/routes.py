@@ -5,7 +5,7 @@ from marshmallow import ValidationError
 from app.models import Mechanic, db
 from sqlalchemy import select, delete
 from app.extensions import cache, limiter
-from app.utils.util import encode_token, token_required
+from app.utils.util import encode_token, mechanic_required
 from werkzeug.security import generate_password_hash, check_password_hash
 
 # -------------------- Login Route --------------------
@@ -23,10 +23,10 @@ def login():
     mechanic = db.session.execute(query).scalars().first()
 
     if mechanic and check_password_hash(mechanic.password, password):
-        token = encode_token(mechanic.id, "mechanic")
+        token = encode_token(mechanic.id, role="mechanic")
         return jsonify({"status": "success", "message": "Successfully logged in.", "token": token}), 200
     else:
-        return jsonify({"message": "Invalid email or password!"}), 401
+        return jsonify({"status": "error", "message": "Invalid email or password!"}), 401
 
 # -------------------- Create a New Mechanic --------------------
 # This route allows the creation of a new mechanic.
@@ -46,7 +46,10 @@ def create_mechanic():
     new_mechanic = Mechanic(**mechanic_data)
     db.session.add(new_mechanic)
     db.session.commit()
-    return jsonify({"message":"Successfully created mechanic","mechanic": mechanic_schema.dump(new_mechanic)}), 201
+    data = mechanic_schema.dump(new_mechanic)
+    data["message"] = "Successfully created mechanic"
+    data["status"] = "success"
+    return jsonify(data), 201
 
 # -------------------- Get All Mechanics --------------------
 # This route retrieves all mechanics.
@@ -61,24 +64,24 @@ def get_mechanics():
         per_page = int(request.args.get('per_page'))
         query = select(Mechanic)
         mechanics = db.paginate(query, page=page, per_page=per_page)
-        return mechanics_schema.jsonify(mechanics), 200
+        return mechanics_schema_with_tickets.jsonify(mechanics), 200
     except:
         query = select(Mechanic)
         mechanics = db.session.execute(query).scalars().all()
-    return mechanics_schema.jsonify(mechanics), 200
+    return mechanics_schema_with_tickets.jsonify(mechanics), 200
 
 # -------------------- Get a Specific Mechanic --------------------
 # This route retrieves a specific mechanic by their ID.
 # Cached for 30 seconds to reduce database lookups.
-@mechanics_bp.route("/<int:mechanic_id>",methods=['GET'])
+@mechanics_bp.route("/<int:id>",methods=['GET'])
 @limiter.exempt
 # @cache.cached(timeout=30)
-def get_mechanic(mechanic_id):
-    query = select(Mechanic).where(Mechanic.id == mechanic_id)
+def get_mechanic(id):
+    query = select(Mechanic).where(Mechanic.id == id)
     mechanic = db.session.execute(query).scalars().first()
     if mechanic == None:
-        return jsonify({"message":"Invalid mechanic"}), 404
-    return mechanic_schema.jsonify(mechanic), 200
+        return jsonify({"status": "error","message":"Invalid mechanic"}), 404
+    return mechanic_schema_with_tickets.jsonify(mechanic), 200
 
 # -------------------- Update a Mechanic --------------------
 # This route allows updating a mechanic's details by their ID.
@@ -86,11 +89,8 @@ def get_mechanic(mechanic_id):
 # Validates the input and ensures the email is unique.
 @mechanics_bp.route("/", methods=['PUT'])
 @limiter.limit("10/hour")
-@token_required
+@mechanic_required
 def update_mechanic():
-    
-    if request.user_type != "mechanic":
-        return jsonify({"message": "Unauthorized access!"}), 403
     
     query = select(Mechanic).where(Mechanic.id == request.userid)
     mechanic = db.session.execute(query).scalars().first()
@@ -117,7 +117,7 @@ def update_mechanic():
 # Rate limited to 5 requests per day to prevent abuse.
 @mechanics_bp.route("/", methods=['DELETE'])
 @limiter.limit("5/day")
-@token_required
+@mechanic_required
 def delete_mechanic():
     
     if request.user_type != "mechanic":
@@ -131,7 +131,7 @@ def delete_mechanic():
     
     db.session.delete(mechanic)
     db.session.commit()
-    return jsonify({"message": f"Succesfully deleted user {request.userid}"}), 200
+    return jsonify({"message": f"Succesfully deleted mechanic {request.userid}"}), 200
 
 # -------------------- Get Popular Mechanics --------------------
 # This route retrieves the mechanics based on the number of service tickets they have handled.
@@ -156,10 +156,26 @@ def popular_mechanics():
 # This route allows searching for mechanics by their name.
 # Cached for 30 seconds to improve performance.
 @mechanics_bp.route("/search", methods=['GET'])
-@cache.cached(timeout=30)
+# @cache.cached(timeout=30)
 def search_mechanics():
-    name = request.args.get('name')
-    query = select(Mechanic).where(Mechanic.name.like(f'%{name}%'))
-    mechanics = db.session.execute(query).scalars().all()
     
-    return mechanics_schema.jsonify(mechanics), 200
+    name = request.args.get('name')
+    email = request.args.get('email')
+    
+    if not name and not email:
+        return jsonify({"status":"error","message": "At least one search parameter (name or email) is required."}), 400
+
+    query = select(Mechanic)
+    filters = []
+    if name:
+        filters.append(Mechanic.name.ilike(f'%{name}%'))
+    if email:
+        filters.append(Mechanic.email.ilike(f'%{email}%'))
+    if filters:
+        query = query.where(*filters)
+
+    mechanics = db.session.execute(query).scalars().all()
+    if not mechanics:
+        return jsonify({"status": "error","message": "No mechanics found"}), 404
+
+    return mechanics_schema_with_tickets.jsonify(mechanics), 200
