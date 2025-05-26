@@ -21,17 +21,20 @@ def create_ticket():
 
     except ValidationError as e:
         return jsonify(e.messages), 400
+
+    customer = db.session.get(Customer, ticket_data['customer_id'])
+    if not customer:
+        return jsonify({"message": "invalid customer id"}), 400
+    
     new_service_ticket = ServiceTicket(
         service_date=ticket_data['service_date'],
         service_desc=ticket_data['service_desc'],
         customer_id=ticket_data['customer_id'],
         vin=ticket_data['vin']
     )
-    customer = db.session.get(Customer, ticket_data['customer_id'])
-    if not customer:
-        return jsonify({"message": "invalid customer id"}), 400
     
-    for mechanic_id in ticket_data['mechanic_ids']:
+    mechanic_ids = ticket_data.get('mechanic_ids', [])
+    for mechanic_id in mechanic_ids:
         query = select(Mechanic).where(Mechanic.id==mechanic_id)
         mechanic = db.session.execute(query).scalar()
         if mechanic:
@@ -49,9 +52,17 @@ def create_ticket():
 # @cache.cached(timeout=60)
 @limiter.exempt
 def get_service_tickets():
+    page = request.args.get('page', 1, type=int)
+    per_page = request.args.get('per_page', 10, type=int)
     query = select(ServiceTicket)
-    result = db.session.execute(query).scalars().all()
-    return service_tickets_schema.jsonify(result), 200
+    pagination = db.paginate(query, page=page, per_page=per_page)
+    return jsonify({
+        "tickets": service_tickets_schema.dump(pagination.items),
+        "total": pagination.total,
+        "page": pagination.page,
+        "per_page": pagination.per_page,
+        "pages": pagination.pages
+    }), 200
 
 # -------------------- Get Individual Service Ticket --------------------
 # This route retrieves specific service ticket.
@@ -61,7 +72,7 @@ def get_service_ticket(service_ticket_id):
     ticket = db.session.get(ServiceTicket,service_ticket_id)
     if ticket:
         return service_ticket_schema.jsonify(ticket), 200
-    return jsonify({"message":"Invalid ticket id"}), 404
+    return jsonify({"status":"error","message":"Invalid ticket id"}), 404
 
 # -------------------- Edit Service Tickets --------------------
 # This route allows the editing of service tickets.
@@ -71,31 +82,33 @@ def get_service_ticket(service_ticket_id):
 def edit_service_tickets(id):
     try:
         ticket_data = edit_service_ticket_schema.load(request.json)
+        add_ids = ticket_data.get('add_mechanic_ids', [])
+        remove_ids = ticket_data.get('remove_mechanic_ids', [])
     except ValidationError as e:
         return jsonify(e.messages), 400
     query = select(ServiceTicket).where(ServiceTicket.id==id)
     service_ticket = db.session.execute(query).scalars().first()
     
     if not service_ticket:
-        return jsonify({"message": "Service ticket not found"}), 404
+        return jsonify({"status": "error", "message": "Service ticket not found"}), 404
     
-    for mechanic_id in ticket_data['add_mechanic_ids']:
+    for mechanic_id in add_ids:
         query = select(Mechanic).where(Mechanic.id==mechanic_id)
         mechanic = db.session.execute(query).scalars().first()
         
         if mechanic and mechanic not in service_ticket.mechanics:
             service_ticket.mechanics.append(mechanic)
         else:
-            return jsonify({"message": f"The mechanic {mechanic_id} already exists in this ticket."}), 400
+            return jsonify({"status": "error", "message": f"The mechanic {mechanic_id} already exists in this ticket."}), 400
     
-    for mechanic_id in ticket_data['remove_mechanic_ids']:
+    for mechanic_id in remove_ids:
         query = select(Mechanic).where(Mechanic.id==mechanic_id)
         mechanic = db.session.execute(query).scalars().first()
         
         if mechanic and mechanic in service_ticket.mechanics:
             service_ticket.mechanics.remove(mechanic)
         else:
-            return jsonify({"message": f"The mechanic {mechanic_id} not exist in this ticket."}), 400
+            return jsonify({"status": "error", "message": f"The mechanic {mechanic_id} not exist in this ticket."}), 400
 
     db.session.commit()
     return return_service_ticket_schema.jsonify(service_ticket), 200
@@ -115,12 +128,13 @@ def add_mechanic(ticket_id, mechanic_id):
             return jsonify({
                 'message': f"Mechanic {mechanic.name} successfully added to ticket",
                 'service_ticket': service_ticket_schema.dump(ticket),
+                'status': 'success'
                 # 'mechanics': mechanics_schema.dump(ticket.mechanics)
             }), 200
             
-        return jsonify({"error": "Mechanic already assigned to this ticket."}), 400
+        return jsonify({"status": "error", "message":  "Mechanic already assigned to this ticket."}), 400
     
-    return jsonify({"error": "Service ticket or mechanic not found."}), 404
+    return jsonify({"status": "error", "message": "Service ticket or mechanic not found."}), 404
 
 # -------------------- Remove Mechanic from Service Ticket --------------------
 # This route allows removing a mechanic from a service ticket.
@@ -136,12 +150,13 @@ def remove_mechanic(ticket_id, mechanic_id):
             ticket.mechanics.remove(mechanic)
             db.session.commit()
             return jsonify({
+                'status': 'success',
                 'message': f"Mechanic {mechanic.name} successfully removed from ticket",
                 'service_ticket': service_ticket_schema.dump(ticket),
-                'mechanics': mechanics_schema.dump(ticket.mechanics)
+                # 'mechanics': mechanics_schema.dump(ticket.mechanics)
             }), 200  
-        return jsonify({"error": "Mechanic not included on this ticket."}), 400
-    return jsonify({"error": "Service ticket or mechanic not found."}), 404
+        return jsonify({"status": "error", "message": "Mechanic not included on this ticket."}), 400
+    return jsonify({"status": "error", "message": "Service ticket or mechanic not found."}), 404
 
 # -------------------- Add Part to Service Ticket --------------------
 # Rate limited to 10 requests per hour.
@@ -156,13 +171,14 @@ def add_item(ticket_id, part_id):
             ticket.ticket_items.append(part)
             db.session.commit()
             return jsonify({
+                "status": "success",
                 'message': f"Part {part.description.name} successfully added to ticket",
                 # 'part': part_description_schema.dump(part.description),
                 'service_ticket': service_ticket_schema.dump(ticket),
                 # 'items': serialized_parts_schema.dump(ticket.ticket_items)
             }), 200
-        return jsonify({"error": "Part already assigned to a ticket."}), 400  
-    return jsonify({"error": "Service ticket or serialized part not found."}), 400
+        return jsonify({"status": "error", "message": "Part already assigned to a ticket."}), 400  
+    return jsonify({"status": "error", "message": "Service ticket or serialized part not found."}), 404
 
 # -------------------- Remove Part from Service Ticket --------------------
 # This route allows removing a part from a service ticket by ticket and serialzied part ID.
@@ -174,12 +190,13 @@ def remove_part_from_ticket(ticket_id, part_id):
     part = db.session.get(SerializedPart, part_id)
 
     if not ticket or not part:
-        return jsonify({"status":"error","message": "Service ticket or serialized part not found."}), 400
+        return jsonify({"status":"error", "message": "Service ticket or serialized part not found."}), 404
 
     if part in ticket.ticket_items:
         ticket.ticket_items.remove(part)
         db.session.commit()
         return jsonify({
+            "status":"success",
             'message': f"Part {part.description.name} successfully removed from ticket",
             'service_ticket': service_ticket_schema.dump(ticket),
             # 'items': serialized_parts_schema.dump(ticket.ticket_items)
@@ -207,7 +224,7 @@ def add_to_cart(ticket_id, part_id):
     # Find available serialized parts for this description
     available_parts = [p for p in part_desc.serial_items if not p.ticket_id]
     if len(available_parts) < quantity:
-        return jsonify({"error": f"Only {len(available_parts)} stock(s) available for this part."}), 400
+        return jsonify({"status":"error","message": f"Only {len(available_parts)} stock(s) available for this part."}), 400
 
     # Add the requested quantity of parts to the ticket
     for part in available_parts[:quantity]:
@@ -215,6 +232,7 @@ def add_to_cart(ticket_id, part_id):
     db.session.commit()
 
     return jsonify({
+        'status':'success', 
         'message': f"{quantity} part(s) successfully added to cart",
         'service_ticket': service_ticket_schema.dump(ticket),
         # 'items': serialized_parts_schema.dump(ticket.ticket_items)

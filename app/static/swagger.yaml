@@ -1597,7 +1597,7 @@ paths:
 
   #---------- Service Tickets Add Parts to Cart ---------       
   /service-tickets/{ticket_id}/add-to-cart/{part_id}:
-    put:
+    put: #Update
       tags:
         - Service Tickets
       summary: Add parts to a service ticket
@@ -1685,9 +1685,7 @@ paths:
               message: Service ticket not found.
               status: error
 
-  
-              
-              
+             
 # =========================
 # Definitions (Schemas)
 # =========================          

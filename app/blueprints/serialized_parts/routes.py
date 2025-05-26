@@ -93,11 +93,15 @@ def update_serialized_part(id):
     
     part_description = db.session.get(PartDescription, serialized_part_data['desc_id'])
     if not part_description:
-        return jsonify({"status": "error","message":"Part description not found"}), 400
+        return jsonify({"status": "error","message":"Part description not found"}), 404
     
-    ticket = db.session.get(ServiceTicket, serialized_part_data['ticket_id'])
-    if not ticket:
-        return jsonify({"status": "error","message":"Service ticket not found"}), 400
+    # Only check for ticket if ticket_id is not None
+    ticket_id = serialized_part_data.get('ticket_id')
+    if ticket_id is not None:
+        # If ticket_id is provided, check if the ticket exists
+        ticket = db.session.get(ServiceTicket, ticket_id)
+        if not ticket:
+            return jsonify({"status": "error", "message": "Service ticket not found"}), 404
 
     for field, value in serialized_part_data.items():
         setattr(serialized_part, field, value)
@@ -121,7 +125,7 @@ def delete_serialized_part(id):
     
     db.session.delete(serialized_part)
     db.session.commit()
-    return jsonify({"status": "success","message": f"Successfully deleted serialized part {serialized_part_id}"}), 200
+    return jsonify({"status": "success","message": f"Successfully deleted serialized part {id}"}), 200
 
 # -------------------- Get All Stock --------------------
 # This route retrieves all stock of serialized parts.
@@ -133,21 +137,19 @@ def delete_serialized_part(id):
 def get_all_stock():
     query = select(PartDescription)
     parts_description = db.session.execute(query).scalars().all()
-    # Check if there are any part descriptions
-    if not parts_description:
-        return jsonify({"status": "error","message":"No part descriptions found"}), 404
     
     stock = []
-    for part_description in parts_description:
-        part_items = part_description.serial_items
-        count = 0
-        for part in part_items:
-            if not part.ticket_id:
-                count += 1
-        stock.append({
-            "part_description": part_description_schema.dump(part_description),
-            "stock": count
-        })
+    if parts_description:
+        for part_description in parts_description:
+            part_items = part_description.serial_items
+            count = 0
+            for part in part_items:
+                if not part.ticket_id:
+                    count += 1
+            stock.append({
+                "part_description": part_description_schema.dump(part_description),
+                "stock": count
+            })
     return jsonify(stock), 200
   
 # -------------------- Get Individual Stock --------------------

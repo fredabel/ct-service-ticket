@@ -39,17 +39,14 @@ def create_mechanic():
         email_exist = db.session.execute(select(Mechanic).where(Mechanic.email == mechanic_data['email'])).scalars().first()
         if email_exist:
             return jsonify({"status":"error","message": "A mechanic with this email already exists!"}), 400
+        mechanic_data['password'] = generate_password_hash(mechanic_data['password'])
     except ValidationError as err:
         return jsonify(err.messages), 400
     
-    mechanic_data['password'] = generate_password_hash(mechanic_data['password'])
     new_mechanic = Mechanic(**mechanic_data)
     db.session.add(new_mechanic)
     db.session.commit()
-    data = mechanic_schema.dump(new_mechanic)
-    data["message"] = "Successfully created mechanic"
-    data["status"] = "success"
-    return jsonify(data), 201
+    return jsonify({"status": "succes", "message": "Successfully created mechanic", "mechanic": mechanic_schema.dump(new_mechanic)}), 201
 
 # -------------------- Get All Mechanics --------------------
 # This route retrieves all mechanics.
@@ -59,16 +56,17 @@ def create_mechanic():
 # @cache.cached(timeout=60) 
 @limiter.exempt
 def get_mechanics():
-    try:
-        page = int(request.args.get('page'))
-        per_page = int(request.args.get('per_page'))
-        query = select(Mechanic)
-        mechanics = db.paginate(query, page=page, per_page=per_page)
-        return mechanics_schema_with_tickets.jsonify(mechanics), 200
-    except:
-        query = select(Mechanic)
-        mechanics = db.session.execute(query).scalars().all()
-    return mechanics_schema_with_tickets.jsonify(mechanics), 200
+    page = request.args.get('page', 1, type=int)
+    per_page = request.args.get('per_page', 10, type=int)
+    query = select(Mechanic)
+    pagination = db.paginate(query, page=page, per_page=per_page)
+    return jsonify({
+        "mechanics": mechanics_schema_with_tickets.dump(pagination.items),
+        "total": pagination.total,
+        "page": pagination.page,
+        "per_page": pagination.per_page,
+        "pages": pagination.pages
+    }), 200
 
 # -------------------- Get a Specific Mechanic --------------------
 # This route retrieves a specific mechanic by their ID.
@@ -119,9 +117,6 @@ def update_mechanic():
 @limiter.limit("5/day")
 @mechanic_required
 def delete_mechanic():
-    
-    if request.user_type != "mechanic":
-        return jsonify({"message": "Unauthorized access!"}), 403
     
     query = select(Mechanic).where(Mechanic.id == request.userid)
     mechanic = db.session.execute(query).scalars().first()
@@ -175,7 +170,4 @@ def search_mechanics():
         query = query.where(*filters)
 
     mechanics = db.session.execute(query).scalars().all()
-    if not mechanics:
-        return jsonify({"status": "error","message": "No mechanics found"}), 404
-
     return mechanics_schema_with_tickets.jsonify(mechanics), 200

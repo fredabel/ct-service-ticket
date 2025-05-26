@@ -38,19 +38,18 @@ def login():
 # This route allows the creation of a new customer.
 # Rate limited to 10 requests per hour to prevent spamming.
 @customers_bp.route("/",methods=['POST'])
-@limiter.limit("3/hour")
+@limiter.limit("10/hour")
 def create_customer():
     try:
         customer_data = customer_schema.load(request.json)
         email_exist = db.session.execute(select(Customer).where(Customer.email == customer_data['email'])).scalar_one_or_none()
         if email_exist:
             return jsonify({"status":"error","message": "A customer with this email already exists!"}), 400
+        customer_data['password'] = generate_password_hash(customer_data['password'])
     except ValidationError as err:
         return jsonify(err.messages), 400
     
-    customer_data['password'] = generate_password_hash(customer_data['password'])
     new_customer = Customer(**customer_data)
-    
     db.session.add(new_customer)
     db.session.commit()
     return jsonify({"status":"success","message":"Successfully created customer","customer": customer_schema.dump(new_customer)}), 201
@@ -63,18 +62,17 @@ def create_customer():
 @cache.cached(timeout=30)
 @limiter.limit("10/hour")
 def get_customers():
-    try:
-        page = int(request.args.get('page'))
-        per_page = int(request.args.get('per_page'))
-        query = select(Customer)
-        customers = db.paginate(query, page=page, per_page=per_page)
-        return customers_schema.jsonify(customers), 200
-    except:
-        query = select(Customer)
-        customers = db.session.execute(query).scalars().all()
-    if customers == None:
-        return jsonify({"status": "error","message":"No customers found"}), 404
-    return customers_schema.jsonify(customers), 200
+    page = request.args.get('page', 1, type=int)
+    per_page = request.args.get('per_page', 10, type=int)
+    query = select(Customer)
+    pagination = db.paginate(query, page=page, per_page=per_page)
+    return jsonify({
+        "customers": customers_schema.dump(pagination.items),
+        "total": pagination.total,
+        "page": pagination.page,
+        "per_page": pagination.per_page,
+        "pages": pagination.pages
+    }), 200
 
 # -------------------- Get a Specific Customer --------------------
 # This route retrieves a specific customer by their ID.
@@ -129,7 +127,7 @@ def delete_customer():
         return jsonify({"status":"error","message":"Invalid customer"}), 404
     db.session.delete(customer)
     db.session.commit()
-    return jsonify({"status":"success","message": f"Succesfully deleted user {request.userid}"}), 200
+    return jsonify({"status":"success","message": f"Succesfully deleted customer {request.userid}"}), 200
 
 # -------------------- Get a Customer's Tickets --------------------
 # This route retrieves all service tickets for a specific customer by their ID.
@@ -157,6 +155,10 @@ def search_customer():
     name = request.args.get('name')
     email = request.args.get('email')
     
+    #For future updates, pagination can be added
+    # page = request.args.get('page', default=1, type=int)
+    # per_page = request.args.get('per_page', default=10, type=int)
+    
     if not name and not email:
         return jsonify({"status":"error","message": "At least one search parameter (name or email) is required."}), 400
 
@@ -168,9 +170,9 @@ def search_customer():
         filters.append(Customer.email.ilike(f'%{email}%'))
     if filters:
         query = query.where(*filters)
-
+        
+    # customers = db.paginate(query, page=page, per_page=per_page)
     customers = db.session.execute(query).scalars().all()
-    if not customers:
-        return jsonify({"status": "error","message": "No customers found"}), 404
-
+    # if not customers:
+    #     return jsonify({"status": "error","message": "No customers found"}), 404
     return customers_schema.jsonify(customers), 200

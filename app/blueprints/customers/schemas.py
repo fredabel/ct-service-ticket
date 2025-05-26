@@ -2,7 +2,7 @@ from app.models import Customer
 from app.extensions import ma
 from marshmallow import fields
 class CustomerSchema(ma.SQLAlchemyAutoSchema):
-    password = fields.String(load_only=True) 
+    password = fields.String(load_only=True, required=True)
     class Meta:
         model = Customer
 

@@ -31,17 +31,18 @@ def create_part_description():
 # @cache.cached(timeout=30)
 @limiter.limit("10/hour")
 def get_part_descriptions():
-    try:
-        page = int(request.args.get('page'))
-        per_page = int(request.args.get('per_page'))
-        query = select(PartDescription)
-        part_descriptions = db.paginate(query, page=page, per_page=per_page)
-        return part_descriptions_schema.jsonify(part_descriptions), 200
-    except:
-        query = select(PartDescription)
-        part_descriptions = db.session.execute(query).scalars().all()
-    return part_descriptions_schema.jsonify(part_descriptions), 200
-
+    page = request.args.get('page', 1, type=int)
+    per_page = request.args.get('per_page', 10, type=int)
+    query = select(PartDescription)
+    pagination = db.paginate(query, page=page, per_page=per_page)
+    return jsonify({
+        "items": part_descriptions_schema.dump(pagination.items),
+        "total": pagination.total,
+        "page": pagination.page,
+        "per_page": pagination.per_page,
+        "pages": pagination.pages
+    }), 200
+    
 
 # -------------------- Get a Specific Part Descriptions --------------------
 # This route retrieves a specific part description by their ID.
@@ -49,11 +50,11 @@ def get_part_descriptions():
 @part_descriptions_bp.route("/<int:part_description_id>",methods=['GET'])
 @limiter.exempt
 # @cache.cached(timeout=30)
-def get_mechanic(part_description_id):
+def get_part_description(part_description_id):
     query = select(PartDescription).where(PartDescription.id == part_description_id)
     part_description = db.session.execute(query).scalars().first()
     if part_description == None:
-        return jsonify({"message":"Invalid part description"}), 404
+        return jsonify({"status":"error","message":"Invalid part description"}), 404
     return part_description_schema.jsonify(part_description), 200
 
 # -------------------- Update a Part Description --------------------
@@ -106,7 +107,7 @@ def search_part_descriptions():
     name = request.args.get('name')
     brand = request.args.get('brand')
     if not name and not brand:
-        return jsonify({"message": "Please provide a name or brand to search"}), 400
+        return jsonify({"status":"error","message": "Please provide a name or brand to search"}), 400
     query = select(PartDescription)
     filters = []
     if name:
@@ -117,8 +118,4 @@ def search_part_descriptions():
         query = query.where(*filters)
         
     part_descriptions = db.session.execute(query).scalars().all()
-    
-    if not part_descriptions:
-        return jsonify({"message": "No part descriptions found"}), 404
-    
     return part_descriptions_schema.jsonify(part_descriptions), 200
