@@ -39,16 +39,17 @@ def create_serialized_part():
 @serialized_parts_bp.route("/",methods=['GET'])
 # @cache.cached(timeout=60)
 def get_serialized_parts():
-    try:
-        page = int(request.args.get('page'))
-        per_page = int(request.args.get('per_page'))
-        query = select(SerializedPart)
-        serialized_parts = db.paginate(query, page=page, per_page=per_page)
-        return serialized_parts_schema_no_ticket.jsonify(serialized_parts), 200
-    except:
-        query = select(SerializedPart)
-        serialized_parts = db.session.execute(query).scalars().all()
-    return serialized_parts_schema_no_ticket.jsonify(serialized_parts), 200
+    page = request.args.get('page', 1, type=int)
+    per_page = request.args.get('per_page', 10, type=int)
+    query = select(SerializedPart)
+    pagination = db.paginate(query, page=page, per_page=per_page)
+    return jsonify({
+        "items": serialized_parts_schema_no_ticket.dump(pagination.items),
+        "total": pagination.total,
+        "page": pagination.page,
+        "per_page": pagination.per_page,
+        "pages": pagination.pages
+    }), 200  
 
 # -------------------- Get a Specific Serialized Part --------------------
 # This route retrieves a specific serialized part by their ID.

@@ -82,7 +82,7 @@ class TestSerializedPartDescription(unittest.TestCase):
         
         response = self.client.get('/serialized_parts/', query_string={'page': 1, 'per_page': 10})
         self.assertEqual(response.status_code, 200)
-        self.assertIsInstance(response.json, list)
+        self.assertIsInstance(response.json['items'], list)
         
     def test_get_serialized_part_descriptions_by_id(self): # Test retrieve serialized part descriptions by ID
         

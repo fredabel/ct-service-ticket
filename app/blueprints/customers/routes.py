@@ -64,6 +64,8 @@ def create_customer():
 def get_customers():
     page = request.args.get('page', 1, type=int)
     per_page = request.args.get('per_page', 10, type=int)
+    if page < 1 or per_page < 1:
+        return jsonify({"status": "error", "message": "Page and per_page must be greater than 0."}), 400
     query = select(Customer)
     pagination = db.paginate(query, page=page, per_page=per_page)
     return jsonify({
@@ -111,7 +113,7 @@ def update_customer():
     for field, value in customer_data.items():
         setattr(customer, field, value)
     db.session.commit()
-    return jsonify({"status":"error","message":"Successfully updated customer","customer": customer_schema.dump(customer)}), 200
+    return jsonify({"status":"success","message":"Successfully updated customer","customer": customer_schema.dump(customer)}), 200
 
 # -------------------- Delete a Customer --------------------
 # This route allows deleting a customer by their ID.

@@ -64,7 +64,8 @@ paths:
   
   # --------- Mechanics CRUD ---------
   /mechanics: #Mechanics CRUD
-    post: #Create
+    
+    post: # Create
       tags:
         - Mechanics
       summary: Create a new mechanic
@@ -83,53 +84,83 @@ paths:
             $ref: '#/definitions/MechanicResponse'
           examples:
             application/json:
-              {
-                "id": 1,
-                "name": "John Doe",
-                "phone": "1234567890",
-                "email": "john@app.com",
-                "salary": 50000
+               {
+                "message": "Successfully created mechanic",
+                "status": "success",
+                "mechanic":{
+                  "id": 1,
+                  "name": "John Doe",
+                  "phone": "0987654321",
+                  "email": "jd@app.com",
+                  "salary": 50000
+                }
               }
         400:
-          description: Email already exists
+          description: |
+            Bad Request. This response is returned when:
+              - The email already exists.
+              - Required fields are missing in the request payload.
+              - Unknown or invalid fields are present in the request payload.
           schema:
-            $ref: '#/definitions/MessageSchemaResponse'
+            $ref: '#/definitions/FieldsRequiredMissingSchemaResponse'
           examples:
             application/json:
-              message: Email already exists.
-              stastus: error     
-    get: #Read
+              email_already_exists:
+                message: A mechanic with this email already exists!.
+                stastus: error 
+              missing_field:
+                {
+                  "field": ['Missing data for required field']
+                }
+              unknown_field:
+                {
+                  "field": ['Unknown field']
+                }
+                
+
+    get: # Read
       tags:
         - Mechanics
       summary: Get mechanics (with pagination)
-      description: This endpoint returns a list of mechanics with pagination. 
+      description: This endpoint returns a list of mechanics with pagination.  
         **You can use the `page` and `per_page` query parameters to control pagination.**
       parameters:
         - in: query
           name: page
           type: integer
+          value: 1
           description: Page number for pagination.
         - in: query
           name: per_page
           type: integer
+          value: 2
           description: Number of mechanics per page.
       responses:
         200:
           description: Return all mechanics
           schema:
-            $ref: '#/definitions/MechanicListResponse'
+            $ref: '#/definitions/MechanicPaginationResponse'
           examples:
             application/json:
-              [
-                {
-                  "id": 1,
-                  "name": "John Doe",
-                  "phone": "1234567890",
-                  "email": "john@app.com",
-                  "salary": 50000
-                }
-              ]
-    put: #Update
+              # [
+              #   {
+              #     "id": 1,
+              #     "name": "John Doe",
+              #     "phone": "1234567890",
+              #     "email": "john@app.com",
+              #     "salary": 50000
+              #   }
+              # ]
+        400:
+          description: If page or per_page value is 0
+          schema:
+            $ref: '#/definitions/FieldsRequiredMissingSchemaResponse'
+          examples:
+            application/json:
+              message: Page and per_page must be greater than 0.
+              stastus: error 
+    
+    put: # Update
       tags:
         - Mechanics
       summary: Update a mechanic (Token required)
@@ -150,22 +181,36 @@ paths:
             $ref: '#/definitions/MechanicResponse'
           examples:
             application/json:
-              {
-                "id": 1,
-                "name": "John Doe",
-                "phone": "1234567890",
-                "email": "john@app.com",
-                "salary": 50000,
-              }
+              # {
+              #   "id": 1,
+              #   "name": "John Doe",
+              #   "phone": "1234567890",
+              #   "email": "john@app.com",
+              #   "salary": 50000,
+              # }
         400:
-          description: Email already exists
+          description: |
+            Bad Request. This response is returned when:
+              - The email already exists.
+              - Required fields are missing in the request payload.
+              - Unknown or invalid fields are present in the request payload.
           schema:
-            $ref: '#/definitions/MessageSchemaResponse'
+            $ref: '#/definitions/FieldsRequiredMissingSchemaResponse'
           examples:
             application/json:
-              message: Email already exists.
-              status: error          
-    delete: #Delete
+              email_already_exists:
+                message: A mechanic with this email already exists!.
+                stastus: error 
+              missing_field:
+                {
+                  "field": ['Missing data for required field']
+                }
+              unknown_field:
+                {
+                  "field": ['Unknown field']
+                }
+    
+    delete: # Delete
       tags:
         - Mechanics
       summary: Delete a mechanic (Token required)
@@ -184,7 +229,7 @@ paths:
 
   # --------- Mechanics Get By ID ---------            
   /mechanics/{id}:
-    get: #Read
+    get: # Read
       tags:
         - Mechanics
       summary: Get mechanic by ID
@@ -223,7 +268,7 @@ paths:
               status: error
               
   # --------- Mechanics Popular ---------
-  /mechanics/popular: #Popular Mechanics
+  /mechanics/popular: # Popular Mechanics
     get: #Read
       tags:
         - Mechanics
@@ -244,13 +289,13 @@ paths:
                   "email": "john@app.com",
                   "salary": 50000,
                   "service_tickets": [],
-                  "ticket_counts": 1
+                  "ticket_counts": 0
                 }
               ]
 
   # --------- Mechanics Search ---------
   /mechanics/search:
-    get: #Search
+    get: # Search Mechanics
       tags:
         - Mechanics
       summary: Search mechanics
@@ -290,17 +335,10 @@ paths:
             application/json:
               message: At least one search parameter (name or email) is required.
               status: error
-        404:
-          description: No mechanics found
-          schema:
-            $ref: '#/definitions/MessageSchemaResponse'
-          examples:
-            application/json:
-              message: No mechanics found.
-              status: error
+        
 
   # --------- Customers Endpoints ---------         
-  /customers/login: #Customers Login
+  /customers/login: # Customers Login
     post:
       tags:
         - Customers
@@ -335,8 +373,8 @@ paths:
               status: error
 
   # --------- Customer CRUD ---------
-  /customers: #Customer CRUD
-    post: #Create
+  /customers: # Customer CRUD
+    post: # Create
       tags:
         - Customers
       summary: Create a new customer
@@ -356,20 +394,38 @@ paths:
           examples:
             application/json:
               {
-                "id": 1,
-                "name": "John Doe",
-                "phone": "0987654321",
-                "email": "jd@app.com"
+                "message": "Successfully created customer",
+                "status": "success",
+                "customer":{
+                  "id": 1,
+                  "name": "John Doe",
+                  "phone": "0987654321",
+                  "email": "jd@app.com"
+                }
               }
         400:
-          description: Email already exists
+          description: |
+            Bad Request. This response is returned when:
+              - The email already exists.
+              - Required fields are missing in the request payload.
+              - Unknown or invalid fields are present in the request payload.
           schema:
-            $ref: '#/definitions/MessageSchemaResponse'
+            $ref: '#/definitions/FieldsRequiredMissingSchemaResponse'
           examples:
             application/json:
-              message: Email already exists.
-              status: error          
-    get: #Read
+              email_already_exists:
+                message: A customer with this email already exists!.
+                stastus: error 
+              missing_field:
+                {
+                  "field": ['Missing data for required field']
+                }
+              unknown_field:
+                {
+                  "field": ['Unknown field']
+                }
+    
+    get: # Read
       tags:
         - Customers
       summary: Get customers (with pagination)
@@ -379,27 +435,38 @@ paths:
         - in: query
           name: page
           type: integer
+          value: 1
           description: Page number for pagination.
         - in: query
           name: per_page
           type: integer
+          value: 10
           description: Number of customers per page.
       responses:
         200:
           description: Return all customers
           schema:
-            $ref: '#/definitions/CustomerListResponse'
+            $ref: '#/definitions/CustomerPaginationResponse'
             examples:
               application/json:
-                [
-                  {
-                    "id": 1,
-                    "name": "John Doe",
-                    "phone": "0987654321",
-                    "email": "jd@app.com",
-                  }
-                ]    
-    put: #Update
+                # [
+                #   {
+                #     "id": 1,
+                #     "name": "John Doe",
+                #     "phone": "0987654321",
+                #     "email": "jd@app.com",
+                #   }
+                # ]    
+        400:
+          description: If page or per_page value is 0
+          schema:
+            $ref: '#/definitions/FieldsRequiredMissingSchemaResponse'
+          examples:
+            application/json:
+              message: Page and per_page must be greater than 0.
+              stastus: error 
+
+    put: # Update
       tags:
         - Customers
       summary: Update a customer (Token required)
@@ -427,14 +494,28 @@ paths:
                 "email": "jd@app.com",
               }
         400:
-          description: Email already exists
+          description: |
+            Bad Request. This response is returned when:
+              - The email already exists.
+              - Required fields are missing in the request payload.
+              - Unknown or invalid fields are present in the request payload.
           schema:
-            $ref: '#/definitions/MessageSchemaResponse'
+            $ref: '#/definitions/FieldsRequiredMissingSchemaResponse'
           examples:
             application/json:
-              message: Email already exists.
-              status: error
-    delete: #Delete
+              email_already_exists:
+                message: A customer with this email already exists!.
+                stastus: error 
+              missing_field:
+                {
+                  "field": ['Missing data for required field']
+                }
+              unknown_field:
+                {
+                  "field": ['Unknown field']
+                }
+    
+    delete: # Delete
       tags:
         - Customers
       summary: Delete a customer (Token required)
@@ -486,7 +567,7 @@ paths:
             $ref: '#/definitions/MessageSchemaResponse'
           examples:
             application/json:
-              message: Customer not found!
+              message: Invalid customer
               status: error
 
   # --------- Customers Search ---------              
@@ -529,14 +610,6 @@ paths:
             application/json:
               message: At least one search parameter (name or email) is required.
               status: error
-        404:
-          description: No customers found
-          schema:
-            $ref: '#/definitions/MessageSchemaResponse'
-          examples:
-            application/json:
-              message: No customers found.
-              status: error
 
   # --------- Customers Ticket ---------        
   /customers/my-tickets:
@@ -574,7 +647,7 @@ paths:
 
   # --------- Parts Description Endpoints ---------         
   /part_descriptions: #Parts Description CRUD
-    post: #Create
+    post: # Create
       tags:
         - Part Descriptions
       summary: Create a new part description
@@ -603,7 +676,20 @@ paths:
                   "price": 100.00
                 }
               }
-    get: #Read
+        400:
+          description: |
+            Bad Request. This response is returned when:
+              - Required fields are missing in the request payload.
+              - Unknown or invalid fields are present in the request payload.
+          schema:
+            $ref: '#/definitions/FieldsRequiredMissingSchemaResponse'
+          examples:
+            application/json:
+              {
+                "name": ['Missing data for required field'],
+                "unknown": ['Unknown field']
+              }
+    get: # Read
       tags:
         - Part Descriptions
       summary: Get part descriptions (with pagination)
@@ -636,7 +722,7 @@ paths:
   
   # --------- Parts Description Get By ID ---------      
   /part_descriptions/{id}:
-    get: #Read
+    get: # Read
       tags:
         - Part Descriptions
       summary: Get part description by ID
@@ -671,7 +757,7 @@ paths:
             application/json:
               message: Part description not found.
               status: error        
-    put: #Update
+    put: # Update
       tags:
         - Part Descriptions
       summary: Update a part description
@@ -716,7 +802,22 @@ paths:
             application/json:
               message: Part description not found.
               status: error
-    delete: #Delete
+        400:
+          description: |
+            Bad Request. This response is returned when:
+              - Required fields are missing in the request payload.
+              - Unknown or invalid fields are present in the request payload.
+          schema:
+            $ref: '#/definitions/FieldsRequiredMissingSchemaResponse'
+          examples:
+            application/json:
+              {
+                "name": ['Missing data for required field'],
+                "unknown": ['Unknown field']
+              }
+              
+                
+    delete: # Delete
       tags:
         - Part Descriptions
       summary: Delete a part description
@@ -798,7 +899,7 @@ paths:
 
   # --------- Serialized Parts Endpoints ---------
   /serialized_parts: #Serialized Parts CRUD
-    post: #Create
+    post: # Create
       tags:
         - Serialized Parts
       summary: Create a new serialized part
@@ -842,8 +943,21 @@ paths:
           examples:
             application/json:
               message: Part description not found.
-              status: error       
-    get: #Read
+              status: error 
+        400:
+          description: |
+            Bad Request. This response is returned when:
+              - Required fields are missing in the request payload.
+              - Unknown or invalid fields are present in the request payload.
+          schema:
+            $ref: '#/definitions/FieldsRequiredMissingSchemaResponse'
+          examples:
+            application/json:
+              {
+                "name": ['Missing data for required field'],
+                "unknown": ['Unknown field']
+              }    
+    get: # Read
       tags:
         - Serialized Parts
       summary: Get serialized parts (with pagination)
@@ -881,7 +995,7 @@ paths:
 
   # --------- Serialized Parts Get By ID ---------      
   /serialized_parts/{id}:
-    get: #Read
+    get: # Read
       tags:
         - Serialized Parts
       summary: Get serialized part by ID
@@ -922,7 +1036,7 @@ paths:
               message: Serialized part not found.
               status: error
               
-    put: #Update
+    put: # Update
       tags:
         - Serialized Parts
       summary: Update a serialized part
@@ -993,23 +1107,37 @@ paths:
               #   }
               # }
         400:
-          description:  ticket_id or part_id not found
+          description: |
+            Bad Request. This response is returned when:
+              
+              - Required fields are missing in the request payload.
+              - Unknown or invalid fields are present in the request payload.
           schema:
-            $ref: '#/definitions/MessageSchemaResponse'
+            $ref: '#/definitions/FieldsRequiredMissingSchemaResponse'
           examples:
             application/json:
-              message: ticket_id or part_id not found.
-              status: error   
+              {
+                desc_id: ['Missing data for required field'],
+                unknown: ['Unknown field']
+              }
+                     
         404:
           description: Invalid serialized part ID
           schema:
             $ref: '#/definitions/MessageSchemaResponse'
           examples:
             application/json:
-              message: Serialized part not found.
-              status: error       
+              serialized_id_not_found:
+                message: Serialized part not found.
+                status: error      
+              part_description_not_found:
+                message: Part description not found.
+                status: error
+              ticket_not_found:
+                message: Service ticket not found.
+                status: error    
     
-    delete: #Delete
+    delete: # Delete
       tags:
         - Serialized Parts
       summary: Delete a serialized part
@@ -1110,11 +1238,11 @@ paths:
               
   #---------- Service Tickets Endpoints ---------
   /service-tickets: #Service Tickets CRUD
-    post: #Create
+    post: # Create
       tags:
         - Service Tickets
       summary: Create a new service ticket
-      description: This endpoint allows you to create a new service ticket.
+      description: This endpoint allows you to create a new service ticket. **The `mechanic_ids` is not requried
       parameters:
         - in: body
           name: body
@@ -1133,7 +1261,7 @@ paths:
                 "id": 2,
                 "customer_id": 1,
                 "customer": {
-                  "email": "jd@app.com",
+                  "email": "john@app.com",
                   "id": 1,
                   "name": "John Doe",
                   "phone": "123-456-789"
@@ -1153,18 +1281,30 @@ paths:
                 "ticket_items": []
               }
         400:
-          description: Invalid customer ID or mechanic ID
+          description: |
+            Bad Request. This response is returned when:
+              - Invalid customer ID
+              - Invalid mechanic ID
+              - Invalid service date
+              - Required fields are missing in the request payload.
+              - Unknown or invalid fields are present in the request payload.
           schema:
-            $ref: '#/definitions/MessageSchemaResponse'
+            $ref: '#/definitions/FieldsRequiredMissingSchemaResponse'
           examples:
             application/json:
-              invalid_customer_id:
+              invalid_customer:
                 message: Invalid customer ID.
                 status: error
-              invalid_mechanic_id:
+              invalid_mechanic:
                 message: Invalid mechanic ID.
                 status: error
-    get: #Read
+              invalid_date:
+                service_date: ["Not a valid date."]
+              unkown_or_required:
+                desc_id: ['Missing data for required field']
+                unknown: ['Unknown field']
+
+    get: # Read
       tags:
         - Service Tickets
       summary: Get service tickets (with pagination)
@@ -1213,7 +1353,7 @@ paths:
         
   #---------- Service Tickets Add Single Mechanic ---------
   /service-tickets/{ticket_id}/add-mechanic/{mechanic_id}:
-    put: #Update
+    put: # Update
       tags:
         - Service Tickets
       summary: Add a mechanic to a service ticket
@@ -1285,7 +1425,7 @@ paths:
 
   #---------- Service Tickets Remove Single Mechanic ---------            
   /service-tickets/{ticket_id}/remove-mechanic/{mechanic_id}:
-    put: #Update
+    put: # Update
       tags:
         - Service Tickets
       summary: Remove a mechanic from a service ticket
@@ -1438,7 +1578,7 @@ paths:
 
   #---------- Service Tickets Remove Serialized Part ID ---------
   /service-tickets/{ticket_id}/remove-part/{part_id}:
-    put: #Update
+    put: # Update
       tags:
         - Service Tickets
       summary: Remove a part from a service ticket
@@ -1510,7 +1650,7 @@ paths:
               
   #---------- Service Tickets Add/Remove Multiple Mechanics ---------
   /service-tickets/{id}/edit-mechanics:
-    put: #Update
+    put: # Update
       tags:
         - Service Tickets
       summary: Edit service ticket by ID
@@ -1717,20 +1857,43 @@ definitions:
       status:
         type: string
 
+  FieldsRequiredMissingSchemaResponse:
+    type: object
+    properties:
+      missing_fields:
+        type: array
+        items:
+          type: string
+        example: ["Missing data for required field."]
+      unknown_field:
+        type: array
+        items:
+          type: string
+        example: ["Unknown field."]
+      
+
+
+          
+      
   # --------- Mechanic Schemas ---------
   MechanicPayload:
     type: object
     properties:
       name:
         type: string
+        example: "Mike Smith"
       phone:
         type: string
+        example: "123456789"
       email:
         type: string
+        example: "mike@app.com"
       password:
         type: string
+        example: "password123"
       salary:
         type: integer
+        example: 90000
   
   MechanicResponse:
     type: object
@@ -1739,17 +1902,35 @@ definitions:
         type: integer
       name:
         type: string
+      phone:
+        type: string
       email:
         type: string
       salary:
         type: integer
       service_tickets:
         type: array     
-  
+
   MechanicListResponse:
     type: array
     items:
       $ref: '#/definitions/MechanicResponse'
+
+  MechanicPaginationResponse:
+    type: object
+    properties:
+      page:
+        type: integer
+      pages:
+        type: integer
+      per_page:
+        type: integer
+      total: 
+        type: integer
+      mechanics:
+        $ref: '#/definitions/MechanicListResponse'
+
+ 
   
   #-------------- Customer Schemas-------
   CustomerPayload:
@@ -1757,12 +1938,16 @@ definitions:
     properties:
       name:
         type: string
+        example: "John Doe"
       phone:
         type: string
+        example: "123456789"
       email:
         type: string
+        example: "john@app.com"
       password:
         type: string
+        example: "password123"
   
   CustomerResponse:
     type: object
@@ -1781,6 +1966,20 @@ definitions:
     items:
       $ref: '#/definitions/CustomerResponse'
   
+  CustomerPaginationResponse:
+    type: object
+    properties:
+      page:
+        type: integer
+      pages:
+        type: integer
+      per_page:
+        type: integer
+      total: 
+        type: integer
+      customers:
+        $ref: '#/definitions/CustomerListResponse'
+  
   CustomerTicketsResponse:
     type: object
     properties:
@@ -1797,10 +1996,13 @@ definitions:
     properties:
       name:
         type: string
+        example: "Tire"
       brand:
         type: string
+        example: "Goodyear"
       price:
         type: integer
+        example: 100
   
   PartDescriptionResponse:
     type: object
@@ -1893,16 +2095,20 @@ definitions:
     properties:
       customer_id:
         type: integer
+        example: 1
       mechanic_ids:
         type: array
         items:
           type: integer
       service_date:
         type: string
+        example: "2025-05-01"
       service_desc:
         type: string
+        example: "Test ticket"
       vin:
         type: string
+        example: "CMD123"
   
   ServiceTicketResponse:
     type: object

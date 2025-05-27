@@ -86,17 +86,19 @@ class TestServiceTicket(unittest.TestCase):
     
     def test_create_service_ticket_with_out_mechanics(self): # Test create a service ticket with valid payload
         
-        response = self.client.post('/service-tickets/', json=self.payLoad)
+        payLoad = self.payLoad.copy()
+        response = self.client.post('/service-tickets/', json=payLoad)
         self.assertEqual(response.status_code, 201)
         self.assertEqual(response.json['id'], 2)
     
     def test_create_service_ticket_with_unknown_field(self): # Test create a service ticket with unkown field in payload
+        
         payLoad = self.payLoad.copy()
         payLoad["unknown_field"] = "value"
         response = self.client.post('/service-tickets/', json=payLoad)
         self.assertEqual(response.status_code, 400)
         self.assertEqual(response.json['unknown_field'][0], "Unknown field.")
-    
+
     def test_create_service_ticket_with_mechanics(self): # Test create a service ticket with mechanic payload
         payLoad = self.payLoad.copy()
         payLoad["mechanic_ids"] = [1]
@@ -152,11 +154,16 @@ class TestServiceTicket(unittest.TestCase):
             response = self.client.put('/service-tickets/1/edit-mechanics', json=payLoad)
             self.assertEqual(response.status_code, 400)
             self.assertEqual(response.json['status'], "error")
+            
+    def test_update_service_ticket_details(self): # Test editing  a service ticket details
+      
+        response = self.client.put('/service-tickets/99/edit-mechanics', json={})
+        self.assertEqual(response.status_code, 404)
+        self.assertEqual(response.json['message'], "Service ticket not found")
     
     def test_edit_invalid_service_ticket(self): # Test editing mechanics of a service ticket with invalid mechanic IDs
       
-        payLoad = {}
-        response = self.client.put('/service-tickets/99/edit-mechanics', json=payLoad)
+        response = self.client.put('/service-tickets/99/edit-mechanics', json={})
         self.assertEqual(response.status_code, 404)
         self.assertEqual(response.json['message'], "Service ticket not found")
         
@@ -217,19 +224,19 @@ class TestServiceTicket(unittest.TestCase):
         self.assertEqual(response.status_code, 400)
         self.assertEqual(response.json['message'], "Mechanic not included on this ticket.")
 
-    def test_edit_service_ticket_by_adding_serialized_part_id(self):
+    def test_edit_service_ticket_by_adding_serialized_part_id(self): # Test editing a service ticket by adding a serialized part ID
         
         response = self.client.put('/service-tickets/1/add-part/1')
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.json['message'], "Part Brake Pad successfully added to ticket")
     
-    def test_edit_service_ticket_by_adding_serialized_part_id_invalid(self):
+    def test_edit_service_ticket_by_adding_serialized_part_id_invalid(self): # Test editing a service ticket by adding invalid serialized part ID
         
         response = self.client.put('/service-tickets/999/add-part/9999')
         self.assertEqual(response.status_code, 404)
         self.assertEqual(response.json['message'], "Service ticket or serialized part not found.")
         
-    def test_edit_service_ticket_by_adding_already_exist_serialized_part_id(self):
+    def test_edit_service_ticket_by_adding_already_exist_serialized_part_id(self): # Test editing a service ticket by adding a serialized part ID that already exist
         response = self.client.put('/service-tickets/1/add-part/1')
         self.assertEqual(response.status_code, 200)
         
@@ -237,7 +244,7 @@ class TestServiceTicket(unittest.TestCase):
         self.assertEqual(response.status_code, 400)
         self.assertEqual(response.json['message'], "Part already assigned to a ticket.")
         
-    def test_edit_service_ticket_by_removing_serialized_part_id(self):
+    def test_edit_service_ticket_by_removing_serialized_part_id(self): # Test editing a service ticket by removing a serialized part ID 
         
         response = self.client.put('/service-tickets/1/add-part/1')
         self.assertEqual(response.status_code, 200)
@@ -246,7 +253,7 @@ class TestServiceTicket(unittest.TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.json['message'], "Part Brake Pad successfully removed from ticket")
     
-    def test_edit_service_ticket_by_removing_not_included_serialized_part_id(self):
+    def test_edit_service_ticket_by_removing_not_included_serialized_part_id(self):  # Test editing a service ticket by removing a serialized part ID does not included
         
         response = self.client.put('/service-tickets/1/add-part/1')
         self.assertEqual(response.status_code, 200)
@@ -255,32 +262,31 @@ class TestServiceTicket(unittest.TestCase):
         self.assertEqual(response.status_code, 400)
         self.assertEqual(response.json['message'], "Serialized part not included to this ticket.")
     
-    def test_edit_service_ticket_by_removing_invalid_serialized_part_id(self):
+    def test_edit_service_ticket_by_removing_invalid_serialized_part_id(self): # Test editing a service ticket by removing a invalid serialized part ID 
 
         response = self.client.put('/service-tickets/999/remove-part/1')
         self.assertEqual(response.status_code, 404)
         self.assertEqual(response.json['message'], "Service ticket or serialized part not found.")
     
-    def test_edit_service_ticket_add_to_cart(self):
-        
+    def test_edit_service_ticket_add_to_cart(self):  # Test add parts descriptions to cart 
         response = self.client.put('/service-tickets/1/add-to-cart/1')
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.json['message'], "1 part(s) successfully added to cart")
         self.assertEqual(response.json['service_ticket']['id'], 1)
     
-    def test_edit_service_ticket_add_to_cart_with_quantity(self):
+    def test_edit_service_ticket_add_to_cart_with_quantity(self): # Test add parts descriptions to cart with quantity
         
         response = self.client.put('/service-tickets/1/add-to-cart/1', json={'quantity': 1})
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.json['message'], "1 part(s) successfully added to cart")    
     
-    def test_edit_service_ticket_add_to_cart_with_exceeded_quantity(self):
+    def test_edit_service_ticket_add_to_cart_with_exceeded_quantity(self): # Test add parts descriptions to cart with exceeded quantity
         
         response = self.client.put('/service-tickets/1/add-to-cart/1', json={'quantity': 4})
         self.assertEqual(response.status_code, 400)
         self.assertEqual(response.json['message'], "Only 2 stock(s) available for this part.")    
     
-    def test_edit_service_ticket_add_to_cart_invalid_ticket_id(self):
+    def test_edit_service_ticket_add_to_cart_invalid_ticket_id(self): # Test add parts descriptions to cart with invalid ticket id
         
         response = self.client.put('/service-tickets/9999/add-to-cart/1')
         self.assertEqual(response.status_code, 404)

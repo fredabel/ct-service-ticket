@@ -30,15 +30,15 @@ def login():
 
 # -------------------- Create a New Mechanic --------------------
 # This route allows the creation of a new mechanic.
-# Rate limited to 20 requests per hour to prevent spamming.
+# Rate limited to 10 requests per hour to prevent spamming.
 @mechanics_bp.route("/",methods=['POST'])
-@limiter.limit("20/hour")
+@limiter.limit("10/hour")
 def create_mechanic():
     try:
         mechanic_data = mechanic_schema.load(request.json)
         email_exist = db.session.execute(select(Mechanic).where(Mechanic.email == mechanic_data['email'])).scalars().first()
         if email_exist:
-            return jsonify({"status":"error","message": "A mechanic with this email already exists!"}), 400
+            return jsonify({"status":"error", "message": "A mechanic with this email already exists!"}), 400
         mechanic_data['password'] = generate_password_hash(mechanic_data['password'])
     except ValidationError as err:
         return jsonify(err.messages), 400
@@ -53,11 +53,14 @@ def create_mechanic():
 # Cached for 60 seconds to improve performance.
 # Pagination is implemented to limit the number of mechanics returned in a single request.
 @mechanics_bp.route("/",methods=['GET'])
-# @cache.cached(timeout=60) 
+@cache.cached(timeout=60)
 @limiter.exempt
 def get_mechanics():
     page = request.args.get('page', 1, type=int)
     per_page = request.args.get('per_page', 10, type=int)
+    if page < 1 or per_page < 1:
+        return jsonify({"status": "error", "message": "Page and per_page must be greater than 0."}), 400
+    
     query = select(Mechanic)
     pagination = db.paginate(query, page=page, per_page=per_page)
     return jsonify({
@@ -73,17 +76,17 @@ def get_mechanics():
 # Cached for 30 seconds to reduce database lookups.
 @mechanics_bp.route("/<int:id>",methods=['GET'])
 @limiter.exempt
-# @cache.cached(timeout=30)
+@cache.cached(timeout=30)
 def get_mechanic(id):
     query = select(Mechanic).where(Mechanic.id == id)
     mechanic = db.session.execute(query).scalars().first()
     if mechanic == None:
-        return jsonify({"status": "error","message":"Invalid mechanic"}), 404
+        return jsonify({"status": "error", "message":"Invalid mechanic"}), 404
     return mechanic_schema_with_tickets.jsonify(mechanic), 200
 
 # -------------------- Update a Mechanic --------------------
 # This route allows updating a mechanic's details by their ID.
-# Rate limited to 20 requests per hour to prevent abuse.
+# Rate limited to 10 requests per hour to prevent abuse.
 # Validates the input and ensures the email is unique.
 @mechanics_bp.route("/", methods=['PUT'])
 @limiter.limit("10/hour")
@@ -94,7 +97,7 @@ def update_mechanic():
     mechanic = db.session.execute(query).scalars().first()
     
     if mechanic == None:
-        return jsonify({"message":"Invalid mechanic"}), 404
+        return jsonify({"status": "error", "message":"Invalid mechanic"}), 404
     try:
         mechanic_data = mechanic_schema.load(request.json) 
         mechanic_data['password'] = generate_password_hash(mechanic_data['password'])  
@@ -103,12 +106,12 @@ def update_mechanic():
     if mechanic_data['email'] != mechanic.email:
         email_exist = db.session.execute(select(Mechanic).where(Mechanic.email == mechanic_data['email'])).scalar_one_or_none()
         if email_exist:
-            return jsonify({"message": "A mechanic with this email already exists"}), 400
+            return jsonify({"status": "error", "message": "A mechanic with this email already exists"}), 400
     for field, value in mechanic_data.items():
         setattr(mechanic, field, value)
     db.session.commit()
     
-    return jsonify({"message":"Successfully updated mechanic","mechanic": mechanic_schema.dump(mechanic)}), 200
+    return jsonify({"status": "success", "message":"Successfully updated mechanic","mechanic": mechanic_schema.dump(mechanic)}), 200
 
 # -------------------- Delete a Mechanic --------------------
 # This route allows deleting a mechanic by their ID.
@@ -122,11 +125,11 @@ def delete_mechanic():
     mechanic = db.session.execute(query).scalars().first()
     
     if mechanic == None:
-        return jsonify({"message":"Invalid mechanic"}), 404
+        return jsonify({"status": "error", "message":"Invalid mechanic"}), 404
     
     db.session.delete(mechanic)
     db.session.commit()
-    return jsonify({"message": f"Succesfully deleted mechanic {request.userid}"}), 200
+    return jsonify({"status": "success", "message": f"Succesfully deleted mechanic {request.userid}"}), 200
 
 # -------------------- Get Popular Mechanics --------------------
 # This route retrieves the mechanics based on the number of service tickets they have handled.

@@ -24,7 +24,7 @@ def create_ticket():
 
     customer = db.session.get(Customer, ticket_data['customer_id'])
     if not customer:
-        return jsonify({"message": "invalid customer id"}), 400
+        return jsonify({"status": "error", "message": "Invalid customer id"}), 400
     
     new_service_ticket = ServiceTicket(
         service_date=ticket_data['service_date'],
@@ -40,7 +40,7 @@ def create_ticket():
         if mechanic:
             new_service_ticket.mechanics.append(mechanic)
         else:
-            return jsonify({"message": "invalid mechanic id"}), 400 
+            return jsonify({"status": "error", "message": "Invalid mechanic id"}), 400 
     db.session.add(new_service_ticket)
     db.session.commit() 
     return return_service_ticket_schema.jsonify(new_service_ticket), 201
@@ -72,9 +72,54 @@ def get_service_ticket(service_ticket_id):
     ticket = db.session.get(ServiceTicket,service_ticket_id)
     if ticket:
         return service_ticket_schema.jsonify(ticket), 200
-    return jsonify({"status":"error","message":"Invalid ticket id"}), 404
+    return jsonify({"status":"error", "message":"Invalid ticket id"}), 404
 
-# -------------------- Edit Service Tickets --------------------
+# -------------------- Update Service Ticket --------------------
+# This route allows the editing of service tickets.
+# Rate limited to 10 requests per hour to prevent abuse.
+@service_tickets_bp.route("/<int:service_ticket_id>", methods=['PUT'])
+@limiter.limit("10/hour")
+def update_service_ticket(service_ticket_id):
+    
+    try:
+        ticket_data = service_ticket_schema.load(request.json)
+
+    except ValidationError as e:
+        return jsonify(e.messages), 400
+
+    query = select(ServiceTicket).where(ServiceTicket.id==service_ticket_id)
+    service_ticket = db.session.execute(query).scalars().first()
+    if not service_ticket:
+        return jsonify({"status": "error", "message": "Service ticket not found"}), 404
+    
+    customer = db.session.get(Customer, ticket_data['customer_id'])
+    if not customer:
+        return jsonify({"status": "error", "message": "Invalid customer id"}), 400
+    
+    for field, value in ticket_data.items():
+        if not field == "mechanic_ids":
+            setattr(service_ticket, field, value)
+            
+    mechanic_ids = ticket_data.get('mechanic_ids', [])
+    for mechanic_id in mechanic_ids:
+        query = select(Mechanic).where(Mechanic.id==mechanic_id)
+        mechanic = db.session.execute(query).scalar()
+        
+        if not mechanic:
+            return jsonify({"status": "error", "message": "Invalid mechanic id"}), 400 
+        
+        if mechanic and mechanic not in service_ticket.mechanics:
+            service_ticket.mechanics.append(mechanic)
+        else:
+            return jsonify({"status": "error", "message": f"The mechanic {mechanic_id} already exists in this ticket."}), 400
+        
+    db.session.commit()
+    
+    return return_service_ticket_schema.jsonify(service_ticket), 201
+    
+    
+
+# -------------------- Edit Mechanics of Service Tickets --------------------
 # This route allows the editing of service tickets.
 # Rate limited to 10 requests per hour.
 @service_tickets_bp.route("/<int:id>/edit-mechanics", methods=['PUT'])
@@ -260,7 +305,7 @@ def delete_service_ticket(id):
     query = select(ServiceTicket).where(ServiceTicket.id == id)
     service_ticket = db.session.execute(query).scalars().first()
     if not service_ticket:
-        return jsonify({"status": "error","message": "Service ticket not found"}), 404
+        return jsonify({"status": "error", "message": "Service ticket not found"}), 404
     db.session.delete(service_ticket)
     db.session.commit()
-    return jsonify({"status":"success","message": f"Successfully deleted service ticket {id}"}), 200
+    return jsonify({"status":"success", "message": f"Successfully deleted service ticket {id}"}), 200
