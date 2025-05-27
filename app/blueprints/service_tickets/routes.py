@@ -77,9 +77,9 @@ def get_service_ticket(service_ticket_id):
 # -------------------- Update Service Ticket --------------------
 # This route allows the editing of service tickets.
 # Rate limited to 10 requests per hour to prevent abuse.
-@service_tickets_bp.route("/<int:service_ticket_id>", methods=['PUT'])
+@service_tickets_bp.route("/<int:ticket_id>", methods=['PUT'])
 @limiter.limit("10/hour")
-def update_service_ticket(service_ticket_id):
+def update_service_ticket(ticket_id):
     
     try:
         ticket_data = service_ticket_schema.load(request.json)
@@ -87,7 +87,7 @@ def update_service_ticket(service_ticket_id):
     except ValidationError as e:
         return jsonify(e.messages), 400
 
-    query = select(ServiceTicket).where(ServiceTicket.id==service_ticket_id)
+    query = select(ServiceTicket).where(ServiceTicket.id==ticket_id)
     service_ticket = db.session.execute(query).scalars().first()
     if not service_ticket:
         return jsonify({"status": "error", "message": "Service ticket not found"}), 404

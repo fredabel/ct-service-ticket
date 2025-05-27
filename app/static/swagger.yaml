@@ -1237,7 +1237,7 @@ paths:
               status: error
               
   #---------- Service Tickets Endpoints ---------
-  /service-tickets: #Service Tickets CRUD
+  /service-tickets: # Service Tickets CRUD
     post: # Create
       tags:
         - Service Tickets
@@ -1350,7 +1350,82 @@ paths:
             #       "vin": "CMD12456"
             #     }
             #   ]
-        
+    
+    
+  /service-tickets/{ticket_id}:
+    put: # Update
+      tags:
+        - Service Tickets
+      summary: Update a service ticket
+      description: This endpoint allows you to update service ticket. **The `mechanic_ids` is not requried
+      parameters:
+        - in: path
+          name: ticket_id
+          required: true
+          schema:
+            type: integer
+            minimum: 1
+          description: The ID of the service ticket to update.
+        - in: body
+          name: body
+          description: Service ticket object that needs to be added
+          required: true
+          schema:
+            $ref: '#/definitions/ServiceTicketPayload'
+      responses:
+        200:
+          description: Service ticket updated successfully
+          schema:
+            $ref: '#/definitions/ServiceTicketResponse'
+          examples:
+            application/json:
+              {
+                "id": 2,
+                "customer_id": 1,
+                "customer": {
+                  "email": "john@app.com",
+                  "id": 1,
+                  "name": "John Doe",
+                  "phone": "123-456-789"
+                },
+                "mechanics": [
+                    {
+                        "email": "mike@app.com",
+                        "id": 1,
+                        "name": "Mike Store",
+                        "phone": "123-456-789",
+                        "salary": "50000.00"
+                    }
+                ],
+                "service_date": "2025-03-20",
+                "service_desc": "This is a description",
+                "vin": "CMD12456",
+                "ticket_items": []
+              }
+        400:
+          description: |
+            Bad Request. This response is returned when:
+              - Invalid customer ID
+              - Invalid mechanic ID
+              - Invalid service date
+              - Required fields are missing in the request payload.
+              - Unknown or invalid fields are present in the request payload.
+          schema:
+            $ref: '#/definitions/FieldsRequiredMissingSchemaResponse'
+          examples:
+            application/json:
+              invalid_customer:
+                message: Invalid customer ID.
+                status: error
+              invalid_mechanic:
+                message: Invalid mechanic ID.
+                status: error
+              invalid_date:
+                service_date: ["Not a valid date."]
+              unkown_or_required:
+                desc_id: ['Missing data for required field']
+                unknown: ['Unknown field']
+
   #---------- Service Tickets Add Single Mechanic ---------
   /service-tickets/{ticket_id}/add-mechanic/{mechanic_id}:
     put: # Update
