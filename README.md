@@ -19,6 +19,7 @@ A Flask-based web application for managing customers, mechanics, service tickets
 - **Rate Limiting**: Flask-Limiter
 - **Caching**: Flask-Caching
 
+
 ## Installation
 
 1. Clone the repository:
@@ -52,4 +53,14 @@ A Flask-based web application for managing customers, mechanics, service tickets
    ```
 7. **Access the application at http://127.0.0.1:5000.**
 
+## Testing
+This project includes a suite of unittests.  
+To run all tests:
 
+```sh
+python -m unittest discover tests
+```
+
+API Documentation
+Interactive API docs are available via Swagger UI.
+After starting the server, visit: http://127.0.0.1:5000/api/docs/
