@@ -9,9 +9,9 @@ from app.extensions import cache, limiter
 
 # -------------------- Create a Part Description --------------------
 # This route allows the creation of a new part description.
-# Rate limited to 20 requests per hour to prevent spamming.
+# Rate limited to 10 requests per hour to prevent spamming.
 @part_descriptions_bp.route("/",methods=['POST'])
-@limiter.limit("20/hour")
+@limiter.limit("10/hour")
 def create_part_description():
     try:
         part_description_data = part_description_schema.load(request.json)

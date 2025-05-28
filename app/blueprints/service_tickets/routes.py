@@ -12,9 +12,9 @@ from app.extensions import cache, limiter
 
 # -------------------- Create a New Service Ticket --------------------
 # This route allows the creation of a new service ticket.
-# Rate limited to 20 requests per hour to prevent spamming.
+# Rate limited to 10 requests per hour to prevent spamming.
 @service_tickets_bp.route("/",methods=['POST'])
-@limiter.limit("20/hour")
+@limiter.limit("10/hour")
 def create_ticket():
     try:
         ticket_data = service_ticket_schema.load(request.json)

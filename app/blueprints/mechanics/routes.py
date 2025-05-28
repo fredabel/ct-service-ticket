@@ -30,9 +30,9 @@ def login():
 
 # -------------------- Create a New Mechanic --------------------
 # This route allows the creation of a new mechanic.
-# Rate limited to 10 requests per hour to prevent spamming.
+# Rate limited to 5 requests per hour to prevent spamming.
 @mechanics_bp.route("/",methods=['POST'])
-@limiter.limit("10/hour")
+@limiter.limit("5/hour")
 def create_mechanic():
     try:
         mechanic_data = mechanic_schema.load(request.json)
@@ -86,10 +86,10 @@ def get_mechanic(id):
 
 # -------------------- Update a Mechanic --------------------
 # This route allows updating a mechanic's details by their ID.
-# Rate limited to 10 requests per hour to prevent abuse.
+# Rate limited to 5 requests per hour to prevent abuse.
 # Validates the input and ensures the email is unique.
 @mechanics_bp.route("/", methods=['PUT'])
-@limiter.limit("10/hour")
+@limiter.limit("5/hour")
 @mechanic_required
 def update_mechanic():
     

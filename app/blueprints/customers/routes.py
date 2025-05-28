@@ -38,7 +38,7 @@ def login():
 # This route allows the creation of a new customer.
 # Rate limited to 10 requests per hour to prevent spamming.
 @customers_bp.route("/",methods=['POST'])
-@limiter.limit("10/hour")
+@limiter.limit("5/hour")
 def create_customer():
     try:
         customer_data = customer_schema.load(request.json)
