@@ -3,6 +3,7 @@ from app.extensions import ma
 from marshmallow import fields
 
 class PartDescriptionSchema(ma.SQLAlchemyAutoSchema):
+    category = fields.Nested("CategorySchema")
     class Meta:
         model = PartDescription
      

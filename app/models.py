@@ -1,12 +1,16 @@
 from flask_sqlalchemy import SQLAlchemy
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
-from datetime import date, datetime
+from datetime import date, datetime, timezone
 from typing import List
 
 class Base(DeclarativeBase):
     pass
 
 db = SQLAlchemy(model_class=Base)
+
+# utc_dt = datetime.utcnow().replace(tzinfo=timezone.utc)
+# local_dt = utc_dt.astimezone() 
+# print("Local time:", local_dt)
 
 service_mechanic = db.Table(
     "service_mechanic",
@@ -61,7 +65,7 @@ class PartDescription(Base):
     brand: Mapped[str] = mapped_column(db.String(255), nullable=False)
     price: Mapped[float] = mapped_column(db.Numeric(10, 2), nullable=False)
     image: Mapped[str] = mapped_column(db.String(255), nullable=True)
-    category_id: Mapped[int] = mapped_column(db.ForeignKey("categories.id"), nullable=False)
+    category_id: Mapped[int] = mapped_column(db.ForeignKey("categories.id"), nullable=True)
     created_at: Mapped[datetime] = mapped_column(db.DateTime, default=datetime.utcnow, nullable=False)
     updated_at: Mapped[datetime] = mapped_column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
     
