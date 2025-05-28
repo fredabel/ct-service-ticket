@@ -3,9 +3,12 @@ from jose import jwt
 import jose
 from functools import wraps
 from flask import request, jsonify
+from dotenv import load_dotenv
 import os
 
-SECRET_KEY = os.environ.get("SECRET_KEY")
+load_dotenv()
+
+SECRET_KEY = os.getenv('SECRET_KEY')
 
 def encode_token(user_id, role="user"): 
     payload = {
