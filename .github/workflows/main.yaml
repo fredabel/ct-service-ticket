@@ -36,6 +36,8 @@ jobs:
   test:
     needs: build
     runs-on: ubuntu-latest
+    env:
+      SECRET_KEY: ${{ secrets.SECRET_KEY }}
 
     steps:
       - name: Checkout code
