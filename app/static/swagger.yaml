@@ -5,9 +5,9 @@ info:
   title: "Service Ticket Management System API"
   description: "API to manage a Mechanic Service Ticket System"
   version: "1.0.0"
-host: "my-mechanic-service-shop.onrender.com"
+host: "127.0.0.1:5000"
 schemes:
-  - "https"
+  - "http"
 consumes:
   - "application/json"
 produces:
