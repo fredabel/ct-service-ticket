@@ -3,3 +3,4 @@ __pycache__/
 selfnote.txt
 instance/
 filestructure.txt
+.env
