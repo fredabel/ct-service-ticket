@@ -7,6 +7,8 @@ from app.blueprints.service_tickets import service_tickets_bp
 from app.blueprints.part_descriptions import part_descriptions_bp
 from app.blueprints.serialized_parts import serialized_parts_bp
 from app.blueprints.categories import categories_bp
+from app.blueprints.ticket_status import ticket_status_bp
+from app.blueprints.priorities import priorities_bp
 from flask_swagger_ui import get_swaggerui_blueprint
 
 SWAGGER_URL = '/api/docs' 
@@ -35,6 +37,8 @@ def create_app(config_name):
     app.register_blueprint(part_descriptions_bp, url_prefix='/part_descriptions')
     app.register_blueprint(serialized_parts_bp, url_prefix='/serialized_parts')
     app.register_blueprint(categories_bp, url_prefix='/categories')
+    app.register_blueprint(ticket_status_bp, url_prefix='/ticket_status')
+    app.register_blueprint(priorities_bp, url_prefix='/priorities')
     
     app.register_blueprint(swagger_bp, url_prefix=SWAGGER_URL)
     

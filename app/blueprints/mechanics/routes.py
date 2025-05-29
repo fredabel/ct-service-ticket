@@ -24,7 +24,7 @@ def login():
 
     if mechanic and check_password_hash(mechanic.password, password):
         token = encode_token(mechanic.id, role="mechanic")
-        return jsonify({"status": "success", "message": "Successfully logged in.", "token": token}), 200
+        return jsonify({"status": "success", "message": "Successfully logged in.", "token": token, "user": mechanic_schema.dump(mechanic)}), 200
     else:
         return jsonify({"status": "error", "message": "Invalid email or password!"}), 401
 

@@ -6,12 +6,31 @@ class ServiceTicketSchema(ma.SQLAlchemyAutoSchema):
     mechanic_ids = fields.List(fields.Int()) 
     mechanics = fields.Nested("MechanicSchema", many=True, exclude=["service_tickets"])
     customer = fields.Nested("CustomerSchema")
+    priority = fields.Nested("PrioritySchema")
+    status = fields.Nested("TicketStatusSchema")
     ticket_items = fields.Nested("SerializedPartSchema", many=True, exclude=["ticket"])
 
     class Meta:
         model = ServiceTicket
         include_fk = True 
-        fields = ("id", "service_date", "service_desc", "vin", "customer_id", "customer", "mechanic_ids", "mechanics", "ticket_items")
+        fields = (
+            "id", 
+            "service_date",
+            "completion_date",
+            "service_desc",
+            "estimated_cost",
+            "actual_cost",
+            "priority_id",
+            "status_id",
+            "vin",
+            "customer_id",
+            "customer",
+            "mechanic_ids",
+            "mechanics",
+            "ticket_items",
+            "priority",
+            "status"
+        )
 
 class EditServiceTicketSchema(ma.Schema):
     add_mechanic_ids = fields.List(fields.Int())

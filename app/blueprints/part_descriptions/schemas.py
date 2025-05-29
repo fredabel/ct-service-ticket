@@ -6,6 +6,7 @@ class PartDescriptionSchema(ma.SQLAlchemyAutoSchema):
     category = fields.Nested("CategorySchema")
     class Meta:
         model = PartDescription
+        include_fk = True
      
 part_description_schema = PartDescriptionSchema()
 part_descriptions_schema = PartDescriptionSchema(many=True)

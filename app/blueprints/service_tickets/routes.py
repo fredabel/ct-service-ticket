@@ -26,14 +26,16 @@ def create_ticket():
     if not customer:
         return jsonify({"status": "error", "message": "Invalid customer id"}), 400
     
-    new_service_ticket = ServiceTicket(
-        service_date=ticket_data['service_date'],
-        service_desc=ticket_data['service_desc'],
-        customer_id=ticket_data['customer_id'],
-        vin=ticket_data['vin']
-    )
+    # Remove 'mechanic_ids' before using ticket_data for model creation/update
+    mechanic_ids = ticket_data.pop('mechanic_ids', [])
+    new_service_ticket = ServiceTicket(**ticket_data)
+    # new_service_ticket = ServiceTicket(
+    #     service_date=ticket_data['service_date'],
+    #     service_desc=ticket_data['service_desc'],
+    #     customer_id=ticket_data['customer_id'],
+    #     vin=ticket_data['vin']
+    # )
     
-    mechanic_ids = ticket_data.get('mechanic_ids', [])
     for mechanic_id in mechanic_ids:
         query = select(Mechanic).where(Mechanic.id==mechanic_id)
         mechanic = db.session.execute(query).scalar()

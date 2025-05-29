@@ -28,7 +28,8 @@ def login():
         response = {
             "status": "success",
             "message": "Successfully logged in.",
-            "token": token
+            "token": token,
+            "user": customer_schema.dump(customer)
         }
         return jsonify(response), 200
     else:
