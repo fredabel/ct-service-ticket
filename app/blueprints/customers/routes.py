@@ -1,6 +1,7 @@
 from flask import request, jsonify
 from app.blueprints.customers import customers_bp
-from app.blueprints.customers.schemas import customer_schema, customers_schema, login_schema, my_tickets_schema
+from app.blueprints.customers.schemas import customer_schema, customers_schema, customer_update_schema, login_schema, my_tickets_schema
+from app.blueprints.service_tickets.schemas import service_ticket_schema
 from marshmallow import ValidationError
 from app.models import Customer, db
 from sqlalchemy import select, delete
@@ -95,16 +96,18 @@ def get_customer(customer_id):
 # Validates the input and ensures the email is unique.
 # Rate limited to 5 requests per hour to prevent abuse.
 @customers_bp.route("/", methods=['PUT'])
-@limiter.limit("5/hour")
+# @limiter.limit("5/hour")
 @token_required
 def update_customer():
     query = select(Customer).where(Customer.id == request.userid)
+    print(request.userid)
     customer = db.session.execute(query).scalars().first()
     if customer == None:
         return jsonify({"status":"error","message":"Invalid customer"}), 404
     try:
-        customer_data = customer_schema.load(request.json)
-        customer_data['password'] = generate_password_hash(customer_data['password'])
+        customer_data = customer_update_schema.load(request.json)
+        if customer_data.get('password'): 
+            customer_data['password'] = generate_password_hash(customer_data['password'])
     except ValidationError as err:
         return jsonify(err.messages), 400
     if customer_data['email'] != customer.email:
@@ -147,6 +150,23 @@ def get_customer_tickets():
     data["customer"] = customer_schema.dump(customer)
     return jsonify(data), 200
 
+# -------------------- Get My Ticket by ID --------------------
+# This route allows an authenticated customer to get their own ticket by ticket id.
+@customers_bp.route("/my-tickets/<int:ticket_id>", methods=['GET'])
+@limiter.exempt
+@token_required
+def get_my_ticket_by_id(ticket_id):
+    query = select(Customer).where(Customer.id == request.userid)
+    customer = db.session.execute(query).scalars().first()
+    if customer is None:
+        return jsonify({"status": "error", "message": "Invalid customer"}), 404
+
+    # Find the ticket in the customer's tickets
+    ticket = next((t for t in customer.service_tickets if t.id == ticket_id), None)
+    if ticket is None:
+        return jsonify({"status": "error", "message": "Ticket not found for this customer"}), 404
+
+    return jsonify({"ticket": service_ticket_schema.dump(ticket)}), 200
 
 # -------------------- Search Customer --------------------
 # This route allows searching for mechanics by their name.

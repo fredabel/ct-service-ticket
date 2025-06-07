@@ -16,6 +16,7 @@ class ServiceTicketSchema(ma.SQLAlchemyAutoSchema):
         fields = (
             "id", 
             "service_date",
+            "created_at",
             "completion_date",
             "service_desc",
             "estimated_cost",

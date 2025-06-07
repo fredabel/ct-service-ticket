@@ -1,6 +1,6 @@
 from flask import request, jsonify
 from app.blueprints.mechanics import mechanics_bp
-from app.blueprints.mechanics.schemas import mechanic_schema, mechanics_schema, mechanic_schema_with_tickets, mechanics_schema_with_tickets, login_schema
+from app.blueprints.mechanics.schemas import mechanic_schema, mechanics_schema, mechanic_update_schema, mechanic_schema_with_tickets, mechanics_schema_with_tickets, login_schema
 from marshmallow import ValidationError
 from app.models import Mechanic, db
 from sqlalchemy import select, delete
@@ -99,8 +99,9 @@ def update_mechanic():
     if mechanic == None:
         return jsonify({"status": "error", "message":"Invalid mechanic"}), 404
     try:
-        mechanic_data = mechanic_schema.load(request.json) 
-        mechanic_data['password'] = generate_password_hash(mechanic_data['password'])  
+        mechanic_data = mechanic_update_schema.load(request.json) 
+        if mechanic_data.get('password'):
+            mechanic_data['password'] = generate_password_hash(mechanic_data['password'])  
     except ValidationError as err:
         return jsonify(err.messages), 400
     if mechanic_data['email'] != mechanic.email:

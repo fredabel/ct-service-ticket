@@ -12,7 +12,7 @@ SECRET_KEY = os.getenv('SECRET_KEY')
 
 def encode_token(user_id, role="user"): 
     payload = {
-        'exp': datetime.now(timezone.utc) + timedelta(days=0,hours=1), 
+        'exp': datetime.now(timezone.utc) + timedelta(days=1,hours=1), 
         'iat': datetime.now(timezone.utc), 
         'sub': str(user_id),  # User ID
         'role': role # User role

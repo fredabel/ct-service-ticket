@@ -1963,6 +1963,8 @@ definitions:
       email:
         type: string
         example: "mike@app.com"
+      address:
+        type: string
       password:
         type: string
         example: "password123"
@@ -2017,6 +2019,9 @@ definitions:
       phone:
         type: string
         example: "123456789"
+      address:
+        type: string
+        example: "123 Main St. Gr Drive, OH, 45000"
       email:
         type: string
         example: "john@app.com"
